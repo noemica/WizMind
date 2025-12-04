@@ -1,4 +1,5 @@
-﻿using WizMind.Definitions;
+﻿using System.Diagnostics;
+using WizMind.Definitions;
 using WizMind.Instances;
 using WizMind.Interaction;
 
@@ -7,20 +8,23 @@ namespace WizMind.LuigiAi
     public class LuigiAiData
     {
         private readonly CogmindProcess cogmindProcess;
-        private readonly GameDefinitions definitions;
         private Entity? cogmind;
         private LuigiAiStruct? data;
         private MachineHacking? machineHacking;
+        private int lastAction;
         private List<MapTile>? tiles;
 
         public LuigiAiData(CogmindProcess cogmindProcess)
         {
             this.cogmindProcess = cogmindProcess;
-            this.definitions = new GameDefinitions(
+            this.Definitions = new GameDefinitions(
                 Directory.GetParent(this.cogmindProcess.Process.MainModule!.FileName)!.FullName);
         }
 
-        public int LastAction => this.GetData().actionReady;
+        // Should only be needed for debugging
+        public int LastActionNoCache => this.cogmindProcess.FetchLuigiAiStruct().actionReady;
+
+        public int LastAction => this.lastAction;
 
         public Entity Cogmind
         {
@@ -29,12 +33,14 @@ namespace WizMind.LuigiAi
                 if (this.cogmind == null)
                 {
                     var entityStruct = this.cogmindProcess.FetchStruct<LuigiEntityStruct>(this.GetData().player);
-                    this.cogmind = new Entity(this.cogmindProcess, this.definitions, this, entityStruct);
+                    this.cogmind = new Entity(this.cogmindProcess, this.Definitions, this, entityStruct);
                 }
 
                 return this.cogmind;
             }
         }
+
+        public GameDefinitions Definitions { get; }
 
         public MachineHacking? MachineHacking
         {
@@ -81,7 +87,7 @@ namespace WizMind.LuigiAi
                         for (var x = 0; x < this.MapWidth; x++)
                         {
                             this.tiles.Add(new MapTile(
-                                this.cogmindProcess, this.definitions, this, tilesList[y + x * this.MapHeight], x, y));
+                                this.cogmindProcess, this.Definitions, this, tilesList[y + x * this.MapHeight], x, y));
                         }
                     }
                 }
@@ -110,15 +116,45 @@ namespace WizMind.LuigiAi
 
         public void InvalidateData()
         {
-            this.data = null;
             this.cogmind = null;
+            this.data = null;
+            this.lastAction = 0;
+            this.machineHacking = null;
+            this.tiles = null;
         }
 
         private LuigiAiStruct GetData()
         {
-            this.data ??= this.cogmindProcess.FetchLuigiAiStruct();
+            if (this.data == null)
+            {
+                var stopwatch = new Stopwatch();
+                stopwatch.Start();
+
+                while (this.data == null)
+                {
+                    TryGetData(stopwatch);
+                }
+            }
 
             return this.data.Value;
+
+            void TryGetData(Stopwatch stopwatch)
+            {
+                var data = this.cogmindProcess.FetchLuigiAiStruct();
+
+                if (this.lastAction == 0
+                    || data.actionReady != this.lastAction
+                    || stopwatch.ElapsedMilliseconds > 5000)
+                {
+                    this.lastAction = data.actionReady;
+                    this.data = data;
+
+                    if (stopwatch.ElapsedMilliseconds > 5000)
+                    {
+                        Console.WriteLine("Passed wait timeout");
+                    }
+                }
+            }
         }
     }
 }

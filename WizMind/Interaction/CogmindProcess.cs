@@ -14,8 +14,14 @@ namespace WizMind.Interaction
             this.Process = process;
             this.ptr = ptr;
 
+            this.Input = new Input(this);
+            this.Commands = new Commands(this);
             this.LuigiAiData = new LuigiAiData(this);
         }
+
+        public Commands Commands { get; }
+
+        public Input Input { get; }
 
         public LuigiAiData LuigiAiData { get; }
 
@@ -28,6 +34,7 @@ namespace WizMind.Interaction
 
         public List<T> FetchList<T>(nint arrayPtr, int arraySize)
         {
+            // 4kb
             const int MaxReadSize = 0x1000;
 
             if (this.Process.HasExited)

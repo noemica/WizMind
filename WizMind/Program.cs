@@ -38,27 +38,11 @@ internal class Program
             var inventory = cogmind.Inventory;
             var tiles = data.AllTiles;
             var machineHacking = data.MachineHacking;
+            var input = cogmindProcess.Input;
+            var commands = cogmindProcess.Commands;
 
-            var input = new Input(cogmindProcess);
-
-            input.SendKeystroke(Keys.D, KeyModifier.AltShift);
-            Thread.Sleep(500);
-            input.SendKeystroke(Keys.Escape);
-            Thread.Sleep(500);
-
-            input.SendKeystroke(Keys.D1);
-            Thread.Sleep(500);
-
-            input.SendKeystroke(Keys.D1, KeyModifier.Shift);
-            Thread.Sleep(500);
-            input.SendKeystroke(Keys.Escape);
-            Thread.Sleep(500);
-
-            input.SendKeystroke(Keys.D1, KeyModifier.Alt);
-            Thread.Sleep(500);
-
-            input.SendKeystroke(Keys.G);
-            Thread.Sleep(500);
+            commands.EnsureWizardMode();
+            commands.GiveItem("Assault Rifle");
 
             Console.WriteLine("Done running");
             Console.ReadLine();
