@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using WizMind.LuigiAi;
 using static WizMind.Kernel32;
 
-namespace WizMind
+namespace WizMind.Interaction
 {
     public class CogmindProcess
     {
@@ -57,11 +57,11 @@ namespace WizMind
                 // Read each chunk
                 for (var i = 0; i < readIterations; i++)
                 {
-                    var elementsLeft = arraySize - (i * maxReadCount);
+                    var elementsLeft = arraySize - i * maxReadCount;
                     var elementsToRead = Math.Min(elementsLeft, maxReadCount);
                     var sizeToRead = elementsToRead * size;
 
-                    ReadProcessMemory(this.Process.Handle, arrayPtr + (i * size), buffer, sizeToRead, out var bytesRead);
+                    ReadProcessMemory(this.Process.Handle, arrayPtr + i * size, buffer, sizeToRead, out var bytesRead);
 
                     if (bytesRead != sizeToRead)
                     {
@@ -71,7 +71,7 @@ namespace WizMind
                     // Read each element in the chunk and marshal it to the struct type
                     for (var j = 0; j < elementsToRead; j++)
                     {
-                        var val = Marshal.PtrToStructure<T>(buffer + (j * size));
+                        var val = Marshal.PtrToStructure<T>(buffer + j * size);
                         if (val == null)
                         {
                             throw new Exception("Couldn't convert process data to structure");

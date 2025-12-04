@@ -36,7 +36,7 @@ namespace WizMind.Definitions
 
         public Dictionary<int, PropDefinition> PropIdToDefinition { get; } = new Dictionary<int, PropDefinition>();
 
-        public Dictionary<string, PropDefinition> PropNameToDefinition{ get; } = new Dictionary<string, PropDefinition>();
+        public Dictionary<string, PropDefinition> PropNameToDefinition { get; } = new Dictionary<string, PropDefinition>();
 
         private void ParseCellIds(string cellIdPath)
         {
@@ -53,6 +53,10 @@ namespace WizMind.Definitions
                 this.CellIdToName[id] = cellName;
                 this.CellNameToId[cellName] = id;
             }
+
+            // Also add undefined unknown cell type
+            this.CellIdToName[-1] = "UNKNOWN";
+            this.CellNameToId["UNKNOWN"] = -1;
         }
 
         private void ParseEntityIds(string entityIdPath)

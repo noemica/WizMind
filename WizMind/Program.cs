@@ -1,5 +1,5 @@
 ﻿using System.Diagnostics;
-using WizMind;
+using WizMind.Interaction;
 
 internal class Program
 {
@@ -39,12 +39,36 @@ internal class Program
             var tiles = data.AllTiles;
             var machineHacking = data.MachineHacking;
 
+            var input = new Input(cogmindProcess);
+
+            input.SendKeystroke(Keys.D, KeyModifier.AltShift);
+            Thread.Sleep(500);
+            input.SendKeystroke(Keys.Escape);
+            Thread.Sleep(500);
+
+            input.SendKeystroke(Keys.D1);
+            Thread.Sleep(500);
+
+            input.SendKeystroke(Keys.D1, KeyModifier.Shift);
+            Thread.Sleep(500);
+            input.SendKeystroke(Keys.Escape);
+            Thread.Sleep(500);
+
+            input.SendKeystroke(Keys.D1, KeyModifier.Alt);
+            Thread.Sleep(500);
+
+            input.SendKeystroke(Keys.G);
+            Thread.Sleep(500);
+
+            Console.WriteLine("Done running");
             Console.ReadLine();
         }
         catch (Exception ex)
         {
             Console.WriteLine("Unhandled exception");
             Console.WriteLine(ex.Message);
+
+            Console.ReadLine();
         }
     }
 }

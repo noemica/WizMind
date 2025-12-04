@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using WizMind.Definitions;
+using WizMind.Interaction;
 using WizMind.LuigiAi;
 
 namespace WizMind.Instances

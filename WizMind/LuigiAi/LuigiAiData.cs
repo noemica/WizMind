@@ -1,5 +1,6 @@
 ﻿using WizMind.Definitions;
 using WizMind.Instances;
+using WizMind.Interaction;
 
 namespace WizMind.LuigiAi
 {
@@ -35,11 +36,11 @@ namespace WizMind.LuigiAi
             }
         }
 
-        public MachineHacking MachineHacking
+        public MachineHacking? MachineHacking
         {
             get
             {
-                if (this.machineHacking == null)
+                if (this.machineHacking == null && this.GetData().machineHacking != IntPtr.Zero)
                 {
                     var machineHackingStruct = this.cogmindProcess.FetchStruct<LuigiMachineHackingStruct>(
                         this.GetData().machineHacking);
