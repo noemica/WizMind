@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
-using static WizMind.Imports.User32;
+﻿using static WizMind.Imports.User32;
 
 namespace WizMind.Interaction
 {
@@ -24,10 +22,8 @@ namespace WizMind.Interaction
         AltCtrlShift = Alt | Ctrl | Shift,
     }
 
-    public class Input
+    public class Input(CogmindProcess cogmindProcess)
     {
-        private readonly CogmindProcess cogmindProcess;
-
         private readonly Dictionary<char, (Keys key, KeyModifier modifier)> charToKeyCode =
             new Dictionary<char, (Keys key, KeyModifier modifier)>
             {
@@ -77,10 +73,7 @@ namespace WizMind.Interaction
                 { ']', (Keys.OemCloseBrackets, KeyModifier.None) },
             };
 
-        public Input(CogmindProcess cogmindProcess)
-        {
-            this.cogmindProcess = cogmindProcess;
-        }
+        private readonly CogmindProcess cogmindProcess = cogmindProcess;
 
         /// <summary>
         /// Sends a single keystroke with optional modifiers.

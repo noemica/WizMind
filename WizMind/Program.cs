@@ -1,4 +1,7 @@
 ﻿using System.Diagnostics;
+using WizMind;
+using WizMind.Analysis;
+using WizMind.Definitions;
 using WizMind.Interaction;
 using WizMind.LuigiAi;
 using WizMind.Scripts;
@@ -34,38 +37,32 @@ internal class Program
                 return;
             }
 
-            //var data = cogmindProcess.LuigiAiData;
-            //var cogmind = data.Cogmind;
-            //var inventory = cogmind.Inventory;
-            //var tiles = data.AllTiles;
-            //var machineHacking = data.MachineHacking;
-            //var input = cogmindProcess.Input;
-            //var wizardCommands = cogmindProcess.WizardCommands;
+            var definitions = new GameDefinitions(
+                Directory.GetParent(cogmindProcess.Process.MainModule!.FileName)!.FullName
+            );
+            var input = new Input(cogmindProcess);
+            var gameState = new GameState(input);
+            var luigiAiData = new LuigiAiData(cogmindProcess, definitions);
+            var propAnalysis = new PropAnalysis(luigiAiData);
+            var wizardCommands = new WizardCommands(
+                cogmindProcess,
+                definitions,
+                input,
+                luigiAiData
+            );
 
-            //wizardCommands.GiveItem("Assault Rifle");
-            //wizardCommands.GotoMap(MapType.MAP_MAT, 10);
-            //wizardCommands.RevealMap();
-            //wizardCommands.GotoMap(MapType.MAP_MAT, 9);
-            //wizardCommands.RevealMap();
-            //wizardCommands.GotoMap(MapType.MAP_MAT, 8);
-            //wizardCommands.RevealMap();
-            //wizardCommands.GotoMap(MapType.MAP_FAC, 7);
-            //wizardCommands.RevealMap();
-            //wizardCommands.GotoMap(MapType.MAP_FAC, 6);
-            //wizardCommands.RevealMap();
-            //wizardCommands.GotoMap(MapType.MAP_FAC, 5);
-            //wizardCommands.RevealMap();
-            //wizardCommands.GotoMap(MapType.MAP_FAC, 4);
-            //wizardCommands.RevealMap();
-            //wizardCommands.GotoMap(MapType.MAP_RES, 3);
-            //wizardCommands.RevealMap();
-            //wizardCommands.GotoMap(MapType.MAP_RES, 2);
-            //wizardCommands.RevealMap();
-            //wizardCommands.GotoMap(MapType.MAP_ACC);
-            //wizardCommands.RevealMap();
+            var ws = new ScriptWorkspace(
+                cogmindProcess,
+                definitions,
+                gameState,
+                input,
+                luigiAiData,
+                propAnalysis,
+                wizardCommands
+            );
 
             var script = new GarrisonStatsScript();
-            script.Initialize(cogmindProcess);
+            script.Initialize(ws);
             script.Run();
 
             Console.WriteLine("Done running");

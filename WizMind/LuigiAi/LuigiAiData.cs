@@ -5,22 +5,14 @@ using WizMind.Interaction;
 
 namespace WizMind.LuigiAi
 {
-    public class LuigiAiData
+    public class LuigiAiData(CogmindProcess cogmindProcess, GameDefinitions definitions)
     {
-        private readonly CogmindProcess cogmindProcess;
+        private readonly CogmindProcess cogmindProcess = cogmindProcess;
         private Entity? cogmind;
         private LuigiAiStruct? data;
         private MachineHacking? machineHacking;
         private int lastAction;
         private List<MapTile>? tiles;
-
-        public LuigiAiData(CogmindProcess cogmindProcess)
-        {
-            this.cogmindProcess = cogmindProcess;
-            this.Definitions = new GameDefinitions(
-                Directory.GetParent(this.cogmindProcess.Process.MainModule!.FileName)!.FullName
-            );
-        }
 
         // Should only be needed for debugging
         public int LastActionNoCache => this.cogmindProcess.FetchLuigiAiStruct().actionReady;
@@ -48,7 +40,7 @@ namespace WizMind.LuigiAi
             }
         }
 
-        public GameDefinitions Definitions { get; }
+        public GameDefinitions Definitions { get; } = definitions;
 
         public int Depth => this.GetData().locationDepth;
 

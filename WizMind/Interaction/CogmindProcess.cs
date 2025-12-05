@@ -6,33 +6,11 @@ using static WizMind.Kernel32;
 
 namespace WizMind.Interaction
 {
-    public class CogmindProcess
+    public class CogmindProcess(Process process, nint ptr)
     {
-        private readonly nint ptr;
+        private readonly nint ptr = ptr;
 
-        public CogmindProcess(Process process, nint ptr)
-        {
-            this.Process = process;
-            this.ptr = ptr;
-
-            this.GameState = new GameState(this);
-            this.Input = new Input(this);
-            this.LuigiAiData = new LuigiAiData(this);
-            this.PropAnalysis = new PropAnalysis(this);
-            this.WizardCommands = new WizardCommands(this);
-        }
-
-        public GameState GameState { get; }
-
-        public Input Input { get; }
-
-        public LuigiAiData LuigiAiData { get; }
-
-        public PropAnalysis PropAnalysis { get; }
-
-        public Process Process { get; }
-
-        public WizardCommands WizardCommands { get; }
+        public Process Process { get; } = process;
 
         public LuigiAiStruct FetchLuigiAiStruct()
         {

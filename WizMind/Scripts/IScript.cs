@@ -4,7 +4,7 @@ namespace WizMind.Scripts
 {
     public interface IScript
     {
-        void Initialize(CogmindProcess cogmindProcess);
+        void Initialize(ScriptWorkspace ws);
 
         void Run();
     }

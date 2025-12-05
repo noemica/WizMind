@@ -1,16 +1,15 @@
 ﻿using WizMind.Definitions;
-using WizMind.Interaction;
 using WizMind.LuigiAi;
 
 namespace WizMind.Scripts
 {
     public class GarrisonStatsScript : IScript
     {
-        private CogmindProcess cogmindProcess = null!;
+        private ScriptWorkspace ws = null!;
 
-        public void Initialize(CogmindProcess cogmindProcess)
+        public void Initialize(ScriptWorkspace ws)
         {
-            this.cogmindProcess = cogmindProcess;
+            this.ws = ws;
         }
 
         public void Run()
@@ -59,19 +58,16 @@ namespace WizMind.Scripts
                     }
                 }
 
-                this.cogmindProcess.GameState.SelfDestruct();
+                this.ws.GameState.SelfDestruct();
             }
         }
 
         private Dictionary<PropDefinition, int> ProcessDepth(int depth)
         {
-            var commands = this.cogmindProcess.WizardCommands;
-            var propAnalysis = this.cogmindProcess.PropAnalysis;
+            this.ws.WizardCommands.GotoMap(MapType.MAP_GAR, depth);
+            this.ws.WizardCommands.RevealMap();
 
-            commands.GotoMap(MapType.MAP_GAR, depth);
-            commands.RevealMap();
-
-            return propAnalysis.CalculatePropCounts();
+            return this.ws.PropAnalysis.CalculatePropCounts();
         }
     }
 }

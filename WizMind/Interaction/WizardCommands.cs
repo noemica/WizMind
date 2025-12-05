@@ -4,21 +4,18 @@ using WizMind.LuigiAi;
 
 namespace WizMind.Interaction
 {
-    public class WizardCommands
+    public class WizardCommands(
+        CogmindProcess cogmindProcess,
+        GameDefinitions definitions,
+        Input input,
+        LuigiAiData luigiAiData
+    )
     {
-        private readonly CogmindProcess cogmindProcess;
+        private readonly CogmindProcess cogmindProcess = cogmindProcess;
+        private readonly GameDefinitions definitions = definitions;
+        private readonly Input input = input;
         private bool inWizardMode;
-
-        public WizardCommands(CogmindProcess cogmindProcess)
-        {
-            this.cogmindProcess = cogmindProcess;
-        }
-
-        private GameDefinitions Definitions => this.LuigiAiData.Definitions;
-
-        private Input Input => this.cogmindProcess.Input;
-
-        private LuigiAiData LuigiAiData => this.cogmindProcess.LuigiAiData;
+        private readonly LuigiAiData luigiAiData = luigiAiData;
 
         /// <summary>
         /// Spawns an item attached to Cogmind.
@@ -30,7 +27,7 @@ namespace WizMind.Interaction
         /// <param name="itemName">The name of the item to create.</param>
         public void AttachItem(string itemName)
         {
-            if (!this.Definitions.ItemNameToId.ContainsKey(itemName))
+            if (!this.definitions.ItemNameToId.ContainsKey(itemName))
             {
                 throw new ArgumentException($"Item {itemName} does not exist");
             }
@@ -48,13 +45,13 @@ namespace WizMind.Interaction
             this.EnsureWizardMode();
 
             // Open the wizard mode console
-            this.Input.SendKeystroke(Keys.D, KeyModifier.AltShift);
+            this.input.SendKeystroke(Keys.D, KeyModifier.AltShift);
             Thread.Sleep(TimeDuration.WizardConsoleSleep);
 
-            this.Input.SendString(command);
+            this.input.SendString(command);
             Thread.Sleep(TimeDuration.EnterStringSleep);
 
-            this.Input.SendKeystroke(Keys.Enter);
+            this.input.SendKeystroke(Keys.Enter);
             //Thread.Sleep(TimeDuration.EnterStringSleep);
         }
 
@@ -79,12 +76,12 @@ namespace WizMind.Interaction
             }
 
             // Send the wizard mode command twice to start it
-            this.Input.SendKeystroke(Keys.D, KeyModifier.AltShift);
-            this.Input.SendKeystroke(Keys.D, KeyModifier.AltShift);
+            this.input.SendKeystroke(Keys.D, KeyModifier.AltShift);
+            this.input.SendKeystroke(Keys.D, KeyModifier.AltShift);
 
             // If we are starting from a state with wizard mode active, we will
             // be in the console now and need to exit it
-            this.Input.SendKeystroke(Keys.Escape);
+            this.input.SendKeystroke(Keys.Escape);
             Thread.Sleep(TimeDuration.EnterStringSleep);
 
             this.inWizardMode = true;
@@ -100,7 +97,7 @@ namespace WizMind.Interaction
         /// <param name="itemName">The name of the item to create.</param>
         public void GiveItem(string itemName)
         {
-            if (!this.Definitions.ItemNameToId.ContainsKey(itemName))
+            if (!this.definitions.ItemNameToId.ContainsKey(itemName))
             {
                 throw new ArgumentException($"Item {itemName} does not exist");
             }
@@ -116,7 +113,7 @@ namespace WizMind.Interaction
         /// <param name="depth">Depth of the map to go to if multiple depths are available.</param>
         public bool GotoMap(string mapName, int? depth = null)
         {
-            if (!this.Definitions.MapNameToDefinition.TryGetValue(mapName, out var map))
+            if (!this.definitions.MapNameToDefinition.TryGetValue(mapName, out var map))
             {
                 throw new ArgumentException($"Map {mapName} is not supported");
             }
@@ -131,7 +128,7 @@ namespace WizMind.Interaction
         /// <param name="depth">Depth of the map to go to if multiple depths are available.</param>
         public bool GotoMap(MapType mapType, int? depth = null)
         {
-            if (!this.Definitions.MapTypeToDefinition.TryGetValue(mapType, out var map))
+            if (!this.definitions.MapTypeToDefinition.TryGetValue(mapType, out var map))
             {
                 throw new ArgumentException($"Map {mapType} is not supported");
             }
@@ -149,8 +146,8 @@ namespace WizMind.Interaction
             this.EnsureWizardMode();
 
             if (
-                this.LuigiAiData.MapType == map.type
-                && (depth.HasValue && depth == -this.LuigiAiData.Depth || !depth.HasValue)
+                this.luigiAiData.MapType == map.type
+                && (depth.HasValue && depth == -this.luigiAiData.Depth || !depth.HasValue)
             )
             {
                 //throw new ArgumentException(
@@ -182,7 +179,7 @@ namespace WizMind.Interaction
                     throw new ArgumentException($"Map {map.name} requires depth to be specified");
                 }
 
-                var mainMap = this.Definitions.MainMaps[depth.Value];
+                var mainMap = this.definitions.MainMaps[depth.Value];
 
                 var success = this.GotoMap(mainMap, depth.Value);
                 if (!success)
@@ -202,19 +199,19 @@ namespace WizMind.Interaction
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            var lastAction = this.LuigiAiData.LastAction;
+            var lastAction = this.luigiAiData.LastAction;
 
             // Attempt to load the map periodically, it may take several seconds to load
             // When we have confirmed the new map then it's safe to exit
             while (stopwatch.ElapsedMilliseconds < TimeDuration.MapLoadTime)
             {
                 Thread.Sleep(TimeDuration.MapLoadSleep);
-                this.LuigiAiData.InvalidateData();
+                this.luigiAiData.InvalidateData();
 
                 if (
-                    lastAction == this.LuigiAiData.LastAction
-                    || this.LuigiAiData.MapType != map.type
-                    || (depth.HasValue && -this.LuigiAiData.Depth != depth)
+                    lastAction == this.luigiAiData.LastAction
+                    || this.luigiAiData.MapType != map.type
+                    || (depth.HasValue && -this.luigiAiData.Depth != depth)
                 )
                 {
                     // Data hasn't updated yet
@@ -239,23 +236,23 @@ namespace WizMind.Interaction
             this.EnsureWizardMode();
 
             // The first command reveals just the outlines of rooms and machines
-            this.Input.SendKeystroke(Keys.K, KeyModifier.AltCtrlShift);
+            this.input.SendKeystroke(Keys.K, KeyModifier.AltCtrlShift);
 
             if (full)
             {
                 // The second command reveals all tiles and items
-                this.Input.SendKeystroke(Keys.K, KeyModifier.AltCtrlShift);
+                this.input.SendKeystroke(Keys.K, KeyModifier.AltCtrlShift);
             }
 
             // Send an input to force luigiAi data to refresh
             //this.InvalidateData();
-            //this.Input.SendKeystroke(Keys.D5, waitForResponse: true);
+            //this.input.SendKeystroke(Keys.D5, waitForResponse: true);
             this.InvalidateData();
         }
 
         private void InvalidateData()
         {
-            this.LuigiAiData.InvalidateData();
+            this.luigiAiData.InvalidateData();
         }
     }
 }

@@ -5,16 +5,9 @@ using WizMind.LuigiAi;
 
 namespace WizMind.Analysis
 {
-    public class PropAnalysis
+    public class PropAnalysis(LuigiAiData luigiAiData)
     {
-        private readonly CogmindProcess cogmindProcess;
-
-        public PropAnalysis(CogmindProcess cogmindProcess)
-        {
-            this.cogmindProcess = cogmindProcess;
-        }
-
-        private LuigiAiData LuigiAiData => this.cogmindProcess.LuigiAiData;
+        private readonly LuigiAiData luigiAiData = luigiAiData;
 
         /// <summary>
         /// Calculates the names and frequencies of each prop type on the map.
@@ -29,14 +22,14 @@ namespace WizMind.Analysis
             var propCounts = new Dictionary<PropDefinition, int>();
             var visited = new List<List<bool>>();
 
-            var height = this.LuigiAiData.MapHeight;
-            var width = this.LuigiAiData.MapWidth;
+            var height = this.luigiAiData.MapHeight;
+            var width = this.luigiAiData.MapWidth;
 
             // Create list of processed elements
             var processed = new bool[width, height];
 
             // Process each tile
-            foreach (var tile in this.LuigiAiData.AllTiles)
+            foreach (var tile in this.luigiAiData.AllTiles)
             {
                 // Skip if already processed
                 if (processed[tile.X, tile.Y])
@@ -78,17 +71,17 @@ namespace WizMind.Analysis
                 {
                     CheckTileForProp(
                         processed,
-                        this.LuigiAiData.GetTile(tile.X - 1, tile.Y),
+                        this.luigiAiData.GetTile(tile.X - 1, tile.Y),
                         propName
                     );
                 }
 
                 // Check right tile
-                if (tile.X + 1 < this.LuigiAiData.MapWidth && !processed[tile.X + 1, tile.Y])
+                if (tile.X + 1 < this.luigiAiData.MapWidth && !processed[tile.X + 1, tile.Y])
                 {
                     CheckTileForProp(
                         processed,
-                        this.LuigiAiData.GetTile(tile.X + 1, tile.Y),
+                        this.luigiAiData.GetTile(tile.X + 1, tile.Y),
                         propName
                     );
                 }
@@ -98,17 +91,17 @@ namespace WizMind.Analysis
                 {
                     CheckTileForProp(
                         processed,
-                        this.LuigiAiData.GetTile(tile.X, tile.Y - 1),
+                        this.luigiAiData.GetTile(tile.X, tile.Y - 1),
                         propName
                     );
                 }
 
                 // Check down tile
-                if (tile.Y + 1 < this.LuigiAiData.MapHeight && !processed[tile.X, tile.Y + 1])
+                if (tile.Y + 1 < this.luigiAiData.MapHeight && !processed[tile.X, tile.Y + 1])
                 {
                     CheckTileForProp(
                         processed,
-                        this.LuigiAiData.GetTile(tile.X, tile.Y + 1),
+                        this.luigiAiData.GetTile(tile.X, tile.Y + 1),
                         propName
                     );
                 }
