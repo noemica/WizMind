@@ -4,7 +4,7 @@ namespace WizMind.Imports
 {
     public static class User32
     {
-        public enum MapType: uint
+        public enum VirtualKeyMapType : uint
         {
             MAPVK_VK_TO_VSC = 0X00,
             MAPVK_VSC_TO_VK = 0X01,
@@ -20,12 +20,22 @@ namespace WizMind.Imports
         }
 
         [DllImport("user32.dll")]
-        public static extern uint MapVirtualKeyA(uint uCode, MapType uMapType);
+        public static extern uint MapVirtualKeyA(uint uCode, VirtualKeyMapType uMapType);
 
         [DllImport("user32.dll", SetLastError = true)]
-        public static extern nint SendMessage(nint hWnd, WindowMessage Msg, nuint wParam, nuint lParam);
+        public static extern nint SendMessage(
+            nint hWnd,
+            WindowMessage Msg,
+            nuint wParam,
+            nuint lParam
+        );
 
         [DllImport("user32.dll", SetLastError = true)]
-        public static extern nint PostMessage(nint hWnd, WindowMessage Msg, nuint wParam, nuint lParam);
+        public static extern nint PostMessage(
+            nint hWnd,
+            WindowMessage Msg,
+            nuint wParam,
+            nuint lParam
+        );
     }
 }

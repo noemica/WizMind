@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics;
 using WizMind.Interaction;
+using WizMind.LuigiAi;
+using WizMind.Scripts;
 
 internal class Program
 {
@@ -7,7 +9,6 @@ internal class Program
     {
         try
         {
-
             // Get process
             Process[] processes = Process.GetProcessesByName("Cogmind");
 
@@ -33,16 +34,39 @@ internal class Program
                 return;
             }
 
-            var data = cogmindProcess.LuigiAiData;
-            var cogmind = data.Cogmind;
-            var inventory = cogmind.Inventory;
-            var tiles = data.AllTiles;
-            var machineHacking = data.MachineHacking;
-            var input = cogmindProcess.Input;
-            var commands = cogmindProcess.Commands;
+            //var data = cogmindProcess.LuigiAiData;
+            //var cogmind = data.Cogmind;
+            //var inventory = cogmind.Inventory;
+            //var tiles = data.AllTiles;
+            //var machineHacking = data.MachineHacking;
+            //var input = cogmindProcess.Input;
+            //var wizardCommands = cogmindProcess.WizardCommands;
 
-            commands.EnsureWizardMode();
-            commands.GiveItem("Assault Rifle");
+            //wizardCommands.GiveItem("Assault Rifle");
+            //wizardCommands.GotoMap(MapType.MAP_MAT, 10);
+            //wizardCommands.RevealMap();
+            //wizardCommands.GotoMap(MapType.MAP_MAT, 9);
+            //wizardCommands.RevealMap();
+            //wizardCommands.GotoMap(MapType.MAP_MAT, 8);
+            //wizardCommands.RevealMap();
+            //wizardCommands.GotoMap(MapType.MAP_FAC, 7);
+            //wizardCommands.RevealMap();
+            //wizardCommands.GotoMap(MapType.MAP_FAC, 6);
+            //wizardCommands.RevealMap();
+            //wizardCommands.GotoMap(MapType.MAP_FAC, 5);
+            //wizardCommands.RevealMap();
+            //wizardCommands.GotoMap(MapType.MAP_FAC, 4);
+            //wizardCommands.RevealMap();
+            //wizardCommands.GotoMap(MapType.MAP_RES, 3);
+            //wizardCommands.RevealMap();
+            //wizardCommands.GotoMap(MapType.MAP_RES, 2);
+            //wizardCommands.RevealMap();
+            //wizardCommands.GotoMap(MapType.MAP_ACC);
+            //wizardCommands.RevealMap();
+
+            var script = new GarrisonStatsScript();
+            script.Initialize(cogmindProcess);
+            script.Run();
 
             Console.WriteLine("Done running");
             Console.ReadLine();

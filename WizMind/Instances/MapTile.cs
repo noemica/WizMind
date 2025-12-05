@@ -5,27 +5,29 @@ using WizMind.LuigiAi;
 
 namespace WizMind.Instances
 {
-    [DebuggerDisplay("MapTile ({X},{Y}): {CellId}")]
+    [DebuggerDisplay("MapTile ({X},{Y}): {Name}")]
     public class MapTile
     {
         private readonly CogmindProcess cogmindProcess;
         private readonly GameDefinitions definitions;
         private Entity? entity;
         private Item? item;
+        private string? name;
         private readonly LuigiAiData luigiAiData;
         private Prop? prop;
         private readonly LuigiTileStruct tile;
         private readonly int lastAction;
-        private readonly string cellId;
         private readonly int x;
         private readonly int y;
 
-        public MapTile(CogmindProcess cogmindProcess,
+        public MapTile(
+            CogmindProcess cogmindProcess,
             GameDefinitions definitions,
             LuigiAiData luigiAiData,
             LuigiTileStruct tile,
             int x,
-            int y)
+            int y
+        )
         {
             this.cogmindProcess = cogmindProcess;
             this.definitions = definitions;
@@ -34,18 +36,7 @@ namespace WizMind.Instances
             this.x = x;
             this.y = y;
 
-            this.cellId = definitions.CellIdToName[tile.cell];
-
             this.lastAction = this.luigiAiData.LastAction;
-        }
-
-        public string CellId
-        {
-            get
-            {
-                this.CheckLastAction();
-                return this.cellId;
-            }
         }
 
         public Entity? Entity
@@ -59,7 +50,8 @@ namespace WizMind.Instances
                         this.cogmindProcess,
                         this.definitions,
                         this.luigiAiData,
-                        this.cogmindProcess.FetchStruct<LuigiEntityStruct>(this.tile.entity));
+                        this.cogmindProcess.FetchStruct<LuigiEntityStruct>(this.tile.entity)
+                    );
                 }
 
                 return this.entity;
@@ -76,10 +68,23 @@ namespace WizMind.Instances
                     this.item = new Item(
                         this.luigiAiData,
                         this.definitions,
-                        this.cogmindProcess.FetchStruct<LuigiItemStruct>(this.tile.item));
+                        this.cogmindProcess.FetchStruct<LuigiItemStruct>(this.tile.item)
+                    );
                 }
 
                 return this.item;
+            }
+        }
+
+        public string Name
+        {
+            get
+            {
+                this.CheckLastAction();
+
+                this.name ??= definitions.CellIdToName[tile.cell];
+
+                return this.name;
             }
         }
 
@@ -93,7 +98,8 @@ namespace WizMind.Instances
                     this.prop = new Prop(
                         this.luigiAiData,
                         this.definitions,
-                        this.cogmindProcess.FetchStruct<LuigiPropStruct>(this.tile.prop));
+                        this.cogmindProcess.FetchStruct<LuigiPropStruct>(this.tile.prop)
+                    );
                 }
 
                 return this.prop;

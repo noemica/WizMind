@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
+using WizMind.Analysis;
 using WizMind.LuigiAi;
 using static WizMind.Kernel32;
 
@@ -14,18 +15,24 @@ namespace WizMind.Interaction
             this.Process = process;
             this.ptr = ptr;
 
+            this.GameState = new GameState(this);
             this.Input = new Input(this);
-            this.Commands = new Commands(this);
             this.LuigiAiData = new LuigiAiData(this);
+            this.PropAnalysis = new PropAnalysis(this);
+            this.WizardCommands = new WizardCommands(this);
         }
 
-        public Commands Commands { get; }
+        public GameState GameState { get; }
 
         public Input Input { get; }
 
         public LuigiAiData LuigiAiData { get; }
 
+        public PropAnalysis PropAnalysis { get; }
+
         public Process Process { get; }
+
+        public WizardCommands WizardCommands { get; }
 
         public LuigiAiStruct FetchLuigiAiStruct()
         {
@@ -49,6 +56,7 @@ namespace WizMind.Interaction
             // For better performance, read the memory in chunks of up to 4kb
             // Process all elements in that chunk before moving onto the next one
             var maxReadCount = MaxReadSize / size;
+            var chunkSize = maxReadCount * size;
             var readIterations = Math.Ceiling((float)arraySize / maxReadCount);
 
             if (readIterations == 1)
@@ -68,7 +76,13 @@ namespace WizMind.Interaction
                     var elementsToRead = Math.Min(elementsLeft, maxReadCount);
                     var sizeToRead = elementsToRead * size;
 
-                    ReadProcessMemory(this.Process.Handle, arrayPtr + i * size, buffer, sizeToRead, out var bytesRead);
+                    ReadProcessMemory(
+                        this.Process.Handle,
+                        arrayPtr + (i * chunkSize),
+                        buffer,
+                        sizeToRead,
+                        out var bytesRead
+                    );
 
                     if (bytesRead != sizeToRead)
                     {
@@ -147,8 +161,11 @@ namespace WizMind.Interaction
             {
                 // Query process memory info
                 var res = VirtualQueryEx(
-                    processHandle, proc_min_address, out var mem_basic_info,
-                    Marshal.SizeOf(typeof(MemoryBasicInformation)));
+                    processHandle,
+                    proc_min_address,
+                    out var mem_basic_info,
+                    Marshal.SizeOf(typeof(MemoryBasicInformation))
+                );
 
                 if (res == 0)
                 {
@@ -156,21 +173,30 @@ namespace WizMind.Interaction
                     return null;
                 }
 
-                if (mem_basic_info.Protect == AllocationProtectEnum.PAGE_READWRITE &&
-                    mem_basic_info.State == MemoryBasicInformationState.MEM_COMMIT)
+                if (
+                    mem_basic_info.Protect == AllocationProtectEnum.PAGE_READWRITE
+                    && mem_basic_info.State == MemoryBasicInformationState.MEM_COMMIT
+                )
                 {
                     // Found mapped page, read memory now
                     var buffer = new byte[mem_basic_info.RegionSize];
 
                     ReadProcessMemory(
-                        processHandle, mem_basic_info.BaseAddress, buffer, mem_basic_info.RegionSize, out var bytesRead);
+                        processHandle,
+                        mem_basic_info.BaseAddress,
+                        buffer,
+                        mem_basic_info.RegionSize,
+                        out var bytesRead
+                    );
 
                     nint i = 0;
                     while (i < mem_basic_info.RegionSize - 7)
                     {
                         // Search for magic1 and magic2 numbers every 4 bytes
-                        if (BitConverter.ToUInt32(buffer.AsSpan((int)i, 4)) == Magic1
-                            && BitConverter.ToUInt32(buffer.AsSpan((int)i + 4, 4)) == Magic2)
+                        if (
+                            BitConverter.ToUInt32(buffer.AsSpan((int)i, 4)) == Magic1
+                            && BitConverter.ToUInt32(buffer.AsSpan((int)i + 4, 4)) == Magic2
+                        )
                         {
                             Console.WriteLine($"Found at {mem_basic_info.BaseAddress + i:x}");
                             return mem_basic_info.BaseAddress + i;

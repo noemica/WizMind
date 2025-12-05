@@ -17,7 +17,7 @@ namespace WizMind
             PAGE_WRITECOPY = 0x00000008,
             PAGE_GUARD = 0x00000100,
             PAGE_NOCACHE = 0x00000200,
-            PAGE_WRITECOMBINE = 0x00000400
+            PAGE_WRITECOMBINE = 0x00000400,
         }
 
         [Flags]
@@ -36,7 +36,7 @@ namespace WizMind
             PROCESS_VM_OPERATION = 0x0008,
             PROCESS_VM_READ = 0x0010,
             PROCESS_VM_WRITE = 0x0020,
-            PROCESS_SYNCHRONIZE = 0x00100000
+            PROCESS_SYNCHRONIZE = 0x00100000,
         }
 
         [Flags]
@@ -44,7 +44,7 @@ namespace WizMind
         {
             MEM_COMMIT = 0x1000,
             MEM_FREE = 0x10000,
-            MEM_RESERVE = 0x2000
+            MEM_RESERVE = 0x2000,
         }
 
         [Flags]
@@ -52,7 +52,7 @@ namespace WizMind
         {
             MEM_IMAGE = 0x1000000,
             MEM_MAPPED = 0x40000,
-            MEM_PRIVATE = 0x20000
+            MEM_PRIVATE = 0x20000,
         }
 
         public struct MemoryBasicInformation
@@ -85,19 +85,39 @@ namespace WizMind
         public static extern bool CloseHandle(nint hObject);
 
         [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern nint OpenProcess(ProcessAccessFlags processAccess, bool bInheritHandle, int processId);
+        public static extern nint OpenProcess(
+            ProcessAccessFlags processAccess,
+            bool bInheritHandle,
+            int processId
+        );
 
         [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern bool ReadProcessMemory(nint hProcess, nint lpBaseAddress, byte[] buffer, nint size, out nint lpNumberOfBytesRead);
+        public static extern bool ReadProcessMemory(
+            nint hProcess,
+            nint lpBaseAddress,
+            byte[] buffer,
+            nint size,
+            out nint lpNumberOfBytesRead
+        );
 
         [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern bool ReadProcessMemory(nint hProcess, nint lpBaseAddress, nint buffer, nint size, out nint lpNumberOfBytesRead);
+        public static extern bool ReadProcessMemory(
+            nint hProcess,
+            nint lpBaseAddress,
+            nint buffer,
+            nint size,
+            out nint lpNumberOfBytesRead
+        );
 
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern void GetSystemInfo(out SystemInfo lpSystemInfo);
 
         [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern nint VirtualQueryEx(nint hProcess, nint lpAddress, out MemoryBasicInformation lpBuffer, nint dwLength);
-
+        public static extern nint VirtualQueryEx(
+            nint hProcess,
+            nint lpAddress,
+            out MemoryBasicInformation lpBuffer,
+            nint dwLength
+        );
     }
 }

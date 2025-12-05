@@ -19,7 +19,8 @@ namespace WizMind.Instances
             CogmindProcess cogmindProcess,
             GameDefinitions definitions,
             LuigiAiData luigiAiData,
-            LuigiEntityStruct entity)
+            LuigiEntityStruct entity
+        )
         {
             this.cogmindProcess = cogmindProcess;
             this.definitions = definitions;
@@ -91,9 +92,13 @@ namespace WizMind.Instances
             {
                 this.CheckLastAction();
 
-                this.inventory ??= this.cogmindProcess.FetchList<LuigiItemStruct>(
-                    this.entity.inventoryPointer, this.entity.inventorySize).Select(
-                        item => new Item(this.luigiAiData, this.definitions, item)).ToList();
+                this.inventory ??= this
+                    .cogmindProcess.FetchList<LuigiItemStruct>(
+                        this.entity.inventoryPointer,
+                        this.entity.inventorySize
+                    )
+                    .Select(item => new Item(this.luigiAiData, this.definitions, item))
+                    .ToList();
 
                 return this.inventory;
             }

@@ -7,7 +7,10 @@ namespace WizMind.Instances
     [DebuggerDisplay("Prop: {Name}")]
     public class Prop
     {
+        private PropDefinition? definition;
+        private readonly GameDefinitions definitions;
         private readonly LuigiAiData luigiAiData;
+        private string? name;
         private readonly LuigiPropStruct prop;
 
         private readonly int lastAction;
@@ -15,10 +18,21 @@ namespace WizMind.Instances
         public Prop(LuigiAiData luigiAiData, GameDefinitions definitions, LuigiPropStruct prop)
         {
             this.luigiAiData = luigiAiData;
+            this.definitions = definitions;
             this.prop = prop;
-            this.Name = definitions.PropIdToDefinition[prop.ID];
 
             this.lastAction = this.luigiAiData.LastAction;
+        }
+
+        public PropDefinition Definition
+        {
+            get
+            {
+                this.CheckLastAction();
+
+                this.definition ??= this.definitions.PropIdToDefinition[this.prop.ID];
+                return this.definition;
+            }
         }
 
         public int Id
@@ -39,7 +53,16 @@ namespace WizMind.Instances
             }
         }
 
-        public PropDefinition Name { get; }
+        public string Name
+        {
+            get
+            {
+                this.CheckLastAction();
+
+                this.name ??= this.Definition.Name;
+                return this.name;
+            }
+        }
 
         private void CheckLastAction()
         {

@@ -18,7 +18,8 @@ namespace WizMind.LuigiAi
         {
             this.cogmindProcess = cogmindProcess;
             this.Definitions = new GameDefinitions(
-                Directory.GetParent(this.cogmindProcess.Process.MainModule!.FileName)!.FullName);
+                Directory.GetParent(this.cogmindProcess.Process.MainModule!.FileName)!.FullName
+            );
         }
 
         // Should only be needed for debugging
@@ -32,8 +33,15 @@ namespace WizMind.LuigiAi
             {
                 if (this.cogmind == null)
                 {
-                    var entityStruct = this.cogmindProcess.FetchStruct<LuigiEntityStruct>(this.GetData().player);
-                    this.cogmind = new Entity(this.cogmindProcess, this.Definitions, this, entityStruct);
+                    var entityStruct = this.cogmindProcess.FetchStruct<LuigiEntityStruct>(
+                        this.GetData().player
+                    );
+                    this.cogmind = new Entity(
+                        this.cogmindProcess,
+                        this.Definitions,
+                        this,
+                        entityStruct
+                    );
                 }
 
                 return this.cogmind;
@@ -42,14 +50,18 @@ namespace WizMind.LuigiAi
 
         public GameDefinitions Definitions { get; }
 
+        public int Depth => this.GetData().locationDepth;
+
         public MachineHacking? MachineHacking
         {
             get
             {
                 if (this.machineHacking == null && this.GetData().machineHacking != IntPtr.Zero)
                 {
-                    var machineHackingStruct = this.cogmindProcess.FetchStruct<LuigiMachineHackingStruct>(
-                        this.GetData().machineHacking);
+                    var machineHackingStruct =
+                        this.cogmindProcess.FetchStruct<LuigiMachineHackingStruct>(
+                            this.GetData().machineHacking
+                        );
                     this.machineHacking = new MachineHacking(this, machineHackingStruct);
                 }
 
@@ -57,7 +69,7 @@ namespace WizMind.LuigiAi
             }
         }
 
-        public MapType LocationMap => this.GetData().locationMap;
+        public MapType MapType => this.GetData().locationMap;
 
         public int MapCursorIndex => this.GetData().mapCursorIndex;
 
@@ -76,7 +88,9 @@ namespace WizMind.LuigiAi
                 {
                     // Get the tile structs and convert to map tiles
                     var tilesList = this.cogmindProcess.FetchList<LuigiTileStruct>(
-                        this.GetData().mapData, this.MapWidth * this.MapHeight);
+                        this.GetData().mapData,
+                        this.MapWidth * this.MapHeight
+                    );
                     this.tiles = new List<MapTile>(tilesList.Count);
 
                     // Note: The structs are stored top to bottom, left to right
@@ -86,8 +100,16 @@ namespace WizMind.LuigiAi
                     {
                         for (var x = 0; x < this.MapWidth; x++)
                         {
-                            this.tiles.Add(new MapTile(
-                                this.cogmindProcess, this.Definitions, this, tilesList[y + x * this.MapHeight], x, y));
+                            this.tiles.Add(
+                                new MapTile(
+                                    this.cogmindProcess,
+                                    this.Definitions,
+                                    this,
+                                    tilesList[y + x * this.MapHeight],
+                                    x,
+                                    y
+                                )
+                            );
                         }
                     }
                 }
@@ -142,9 +164,11 @@ namespace WizMind.LuigiAi
             {
                 var data = this.cogmindProcess.FetchLuigiAiStruct();
 
-                if (this.lastAction == 0
+                if (
+                    this.lastAction == 0
                     || data.actionReady != this.lastAction
-                    || stopwatch.ElapsedMilliseconds > 5000)
+                    || stopwatch.ElapsedMilliseconds > 5000
+                )
                 {
                     this.lastAction = data.actionReady;
                     this.data = data;
@@ -153,6 +177,10 @@ namespace WizMind.LuigiAi
                     {
                         Console.WriteLine("Passed wait timeout");
                     }
+                }
+                else
+                {
+                    Thread.Sleep(1);
                 }
             }
         }
