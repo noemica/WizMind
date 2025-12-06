@@ -9,6 +9,7 @@ namespace WizMind.Instances
     public class Entity
     {
         private readonly CogmindProcess cogmindProcess;
+        private EntityDefinition? definition;
         private readonly GameDefinitions definitions;
         private readonly LuigiAiData luigiAiData;
         private readonly LuigiEntityStruct entity;
@@ -27,8 +28,6 @@ namespace WizMind.Instances
             this.luigiAiData = luigiAiData;
             this.entity = entity;
 
-            this.Name = this.definitions.EntityIdToDefinition[entity.ID];
-
             this.lastAction = this.luigiAiData.LastAction;
         }
 
@@ -38,6 +37,17 @@ namespace WizMind.Instances
             {
                 this.CheckLastAction();
                 return this.entity.activeState;
+            }
+        }
+
+        public EntityDefinition Definition
+        {
+            get
+            {
+                this.CheckLastAction();
+
+                this.definition ??= this.definitions.EntityIdToDefinition[entity.ID];
+                return this.definition;
             }
         }
 
@@ -113,7 +123,7 @@ namespace WizMind.Instances
             }
         }
 
-        public EntityDefinition Name { get; }
+        public string Name => this.Definition.Name;
 
         public int Relation
         {

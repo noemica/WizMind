@@ -12,12 +12,25 @@ namespace WizMind.LuigiAi
         private LuigiAiStruct? data;
         private MachineHacking? machineHacking;
         private int lastAction;
-        private List<MapTile>? tiles;
+        private readonly GameDefinitions definitions = definitions;
+        private MapTile[,]? tiles;
 
         // Should only be needed for debugging
         public int LastActionNoCache => this.cogmindProcess.FetchLuigiAiStruct().actionReady;
 
-        public int LastAction => this.lastAction;
+        public int LastAction
+        {
+            get
+            {
+                if (this.data == null)
+                {
+                    // If data has been invalidated, refresh data now before returning the number
+                    this.GetData();
+                }
+
+                return this.lastAction;
+            }
+        }
 
         public Entity Cogmind
         {
@@ -30,7 +43,7 @@ namespace WizMind.LuigiAi
                     );
                     this.cogmind = new Entity(
                         this.cogmindProcess,
-                        this.Definitions,
+                        this.definitions,
                         this,
                         entityStruct
                     );
@@ -39,8 +52,6 @@ namespace WizMind.LuigiAi
                 return this.cogmind;
             }
         }
-
-        public GameDefinitions Definitions { get; } = definitions;
 
         public int Depth => this.GetData().locationDepth;
 
@@ -69,10 +80,21 @@ namespace WizMind.LuigiAi
 
         public int MapWidth => this.GetData().mapWidth;
 
+        public IEnumerable<MapTile> AllTiles
+        {
+            get
+            {
+                foreach (var tile in this.Tiles)
+                {
+                    yield return tile;
+                }
+            }
+        }
+
         // Optimize: Could delay fetching individual tiles until needed
         // Currently takes ~25ms but would be much faster to only fetch
         // a handful of requested tiles at a time
-        public List<MapTile> AllTiles
+        public MapTile[,] Tiles
         {
             get
             {
@@ -83,24 +105,19 @@ namespace WizMind.LuigiAi
                         this.GetData().mapData,
                         this.MapWidth * this.MapHeight
                     );
-                    this.tiles = new List<MapTile>(tilesList.Count);
+                    this.tiles = new MapTile[this.MapWidth, this.MapHeight];
 
-                    // Note: The structs are stored top to bottom, left to right
-                    // I find it easier to reason left to right, top to bottom, so
-                    // swap the order when creating the list used elsewhere in the program
                     for (var y = 0; y < this.MapHeight; y++)
                     {
                         for (var x = 0; x < this.MapWidth; x++)
                         {
-                            this.tiles.Add(
-                                new MapTile(
-                                    this.cogmindProcess,
-                                    this.Definitions,
-                                    this,
-                                    tilesList[y + x * this.MapHeight],
-                                    x,
-                                    y
-                                )
+                            this.tiles[x, y] = new MapTile(
+                                this.cogmindProcess,
+                                this.definitions,
+                                this,
+                                tilesList[y + x * this.MapHeight],
+                                x,
+                                y
                             );
                         }
                     }
@@ -125,7 +142,7 @@ namespace WizMind.LuigiAi
                 throw new ArgumentException("Value out of range");
             }
 
-            return this.AllTiles[x + y * this.MapWidth];
+            return this.Tiles[y, x];
         }
 
         public void InvalidateData()

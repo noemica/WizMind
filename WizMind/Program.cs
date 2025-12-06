@@ -37,13 +37,16 @@ internal class Program
                 return;
             }
 
+            // Create interaction objects and script workspace
             var definitions = new GameDefinitions(
                 Directory.GetParent(cogmindProcess.Process.MainModule!.FileName)!.FullName
             );
             var input = new Input(cogmindProcess);
             var gameState = new GameState(input);
             var luigiAiData = new LuigiAiData(cogmindProcess, definitions);
+            var movement = new Movement(input);
             var propAnalysis = new PropAnalysis(luigiAiData);
+            var tileAnalysis = new TileAnalysis(luigiAiData);
             var wizardCommands = new WizardCommands(
                 cogmindProcess,
                 definitions,
@@ -57,10 +60,13 @@ internal class Program
                 gameState,
                 input,
                 luigiAiData,
+                movement,
                 propAnalysis,
+                tileAnalysis,
                 wizardCommands
             );
 
+            // Run script (hardcoded for now)
             var script = new GarrisonStatsScript();
             script.Initialize(ws);
             script.Run();

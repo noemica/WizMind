@@ -10,13 +10,13 @@ namespace WizMind.Analysis
         private readonly LuigiAiData luigiAiData = luigiAiData;
 
         /// <summary>
-        /// Calculates the names and frequencies of each prop type on the map.
+        /// Calculates the definitions and frequencies of each prop type on the map.
         /// </summary>
         /// <remarks>
         /// Only works off of known tiles. If the whole map should be checked,
         /// call <see cref="WizardCommands.RevealMap(bool)"/> first.
         /// </remarks>
-        /// <returns>A dictionary of prop names to their occurrences.</returns>
+        /// <returns>A dictionary of prop definitions to their occurrences.</returns>
         public Dictionary<PropDefinition, int> CalculatePropCounts()
         {
             var propCounts = new Dictionary<PropDefinition, int>();
@@ -71,7 +71,7 @@ namespace WizMind.Analysis
                 {
                     CheckTileForProp(
                         processed,
-                        this.luigiAiData.GetTile(tile.X - 1, tile.Y),
+                        this.luigiAiData.Tiles[tile.X - 1, tile.Y],
                         propName
                     );
                 }
@@ -81,7 +81,7 @@ namespace WizMind.Analysis
                 {
                     CheckTileForProp(
                         processed,
-                        this.luigiAiData.GetTile(tile.X + 1, tile.Y),
+                        this.luigiAiData.Tiles[tile.X + 1, tile.Y],
                         propName
                     );
                 }
@@ -91,7 +91,7 @@ namespace WizMind.Analysis
                 {
                     CheckTileForProp(
                         processed,
-                        this.luigiAiData.GetTile(tile.X, tile.Y - 1),
+                        this.luigiAiData.Tiles[tile.X, tile.Y - 1],
                         propName
                     );
                 }
@@ -101,7 +101,7 @@ namespace WizMind.Analysis
                 {
                     CheckTileForProp(
                         processed,
-                        this.luigiAiData.GetTile(tile.X, tile.Y + 1),
+                        this.luigiAiData.Tiles[tile.X, tile.Y + 1],
                         propName
                     );
                 }

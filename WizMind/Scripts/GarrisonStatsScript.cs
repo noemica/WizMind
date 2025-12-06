@@ -14,47 +14,80 @@ namespace WizMind.Scripts
 
         public void Run()
         {
-            var allCounts = new Dictionary<PropDefinition, int>();
-            var allCountsAverages = new Dictionary<PropDefinition, float>();
-            var countsByDepth = new List<Dictionary<PropDefinition, int>>();
-            var countsByDepthAverages = new List<Dictionary<PropDefinition, float>>();
+            const int NumDepths = 8;
+
+            var allPropCounts = new Dictionary<PropDefinition, int>();
+            var allPropCountsAverage = new Dictionary<PropDefinition, float>();
+            var allTileCounts = new Dictionary<string, int>();
+            var allTilesCountsAverage = new Dictionary<string, float>();
+            var propCountsByDepth = new List<Dictionary<PropDefinition, int>>();
+            var propCountsByDepthAverages = new List<Dictionary<PropDefinition, float>>();
+            var tileCountsByDepth = new List<Dictionary<string, int>>();
+            var tileCountsByDepthAverages = new List<Dictionary<string, float>>();
             var numRuns = 0;
 
             // Create lookup of definitions by depth
-            for (var depth = 8; depth >= 1; depth--)
+            for (var depth = NumDepths; depth >= 1; depth--)
             {
-                countsByDepth.Add([]);
-                countsByDepthAverages.Add([]);
+                propCountsByDepth.Add([]);
+                propCountsByDepthAverages.Add([]);
+                tileCountsByDepth.Add([]);
+                tileCountsByDepthAverages.Add([]);
             }
 
             while (true)
             {
-                for (var depth = 8; depth >= 1; depth--)
+                for (var depth = NumDepths; depth >= 1; depth--)
                 {
-                    // Count the props at each depth
-                    var newPropCounts = this.ProcessDepth(depth);
-                    var propCounts = countsByDepth[depth - 1];
+                    // Count the props and tiles at each depth
+                    var (newPropCounts, newTileCounts) = this.ProcessDepth(depth);
+                    var propCounts = propCountsByDepth[depth - 1];
+                    var tileCounts = tileCountsByDepth[depth - 1];
 
                     // Combine the counts with the old dictionary
                     foreach (var (prop, newCount) in newPropCounts)
                     {
                         propCounts[prop] = propCounts.GetValueOrDefault(prop) + newCount;
-                        allCounts[prop] = allCounts.GetValueOrDefault(prop) + newCount;
+                        allPropCounts[prop] = allPropCounts.GetValueOrDefault(prop) + newCount;
+                    }
+
+                    foreach (var (tile, newCount) in newTileCounts)
+                    {
+                        tileCounts[tile] = tileCounts.GetValueOrDefault(tile) + newCount;
+                        allTileCounts[tile] = allTileCounts.GetValueOrDefault(tile) + newCount;
                     }
                 }
 
                 numRuns += 1;
 
-                foreach (var (prop, count) in allCounts)
+                // Update average stats
+                foreach (var (prop, count) in allPropCounts)
                 {
-                    allCountsAverages[prop] = (float)count / numRuns;
+                    allPropCountsAverage[prop] = (float)count / (numRuns * NumDepths);
                 }
 
-                foreach (var (counts, averageCounts) in countsByDepth.Zip(countsByDepthAverages))
+                foreach (
+                    var (counts, averageCounts) in propCountsByDepth.Zip(propCountsByDepthAverages)
+                )
                 {
-                    foreach (var (prop, count) in averageCounts)
+                    foreach (var (prop, count) in counts)
                     {
                         averageCounts[prop] = (float)count / numRuns;
+                    }
+                }
+
+                foreach (var (tile, count) in allTileCounts)
+                {
+                    allTilesCountsAverage[tile] = (float)count / (numRuns * NumDepths);
+                }
+
+                foreach (
+                    var (counts, averageCounts) in tileCountsByDepth.Zip(tileCountsByDepthAverages)
+                )
+                {
+                    foreach (var (tile, count) in counts)
+                    {
+                        averageCounts[tile] = (float)count / numRuns;
                     }
                 }
 
@@ -62,12 +95,23 @@ namespace WizMind.Scripts
             }
         }
 
-        private Dictionary<PropDefinition, int> ProcessDepth(int depth)
+        private (
+            Dictionary<PropDefinition, int> PropCounts,
+            Dictionary<string, int> TileCounts
+        ) ProcessDepth(int depth)
         {
             this.ws.WizardCommands.GotoMap(MapType.MAP_GAR, depth);
+
+            // For some reason, loop exits only appear after a turn has passed.
+            // Wait one turn before revealing so we can see the exit.
+            this.ws.Movement.Wait();
+
             this.ws.WizardCommands.RevealMap();
 
-            return this.ws.PropAnalysis.CalculatePropCounts();
+            return (
+                this.ws.PropAnalysis.CalculatePropCounts(),
+                this.ws.TileAnalysis.CalculateTileCounts()
+            );
         }
     }
 }

@@ -2,7 +2,7 @@
 {
     public static class TimeDuration
     {
-        public static int EscapeMenuSleep = 100;
+        public static int EscapeMenuSleep = 200;
 
         public static int EnterStringSleep = 100;
 

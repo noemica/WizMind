@@ -11,7 +11,9 @@ namespace WizMind
         GameState gameState,
         Input input,
         LuigiAiData luigiAiData,
+        Movement movement,
         PropAnalysis propAnalysis,
+        TileAnalysis tileAnalysis,
         WizardCommands wizardCommands
     )
     {
@@ -25,7 +27,11 @@ namespace WizMind
 
         public LuigiAiData LuigiAiData { get; } = luigiAiData;
 
+        public Movement Movement { get; } = movement;
+
         public PropAnalysis PropAnalysis { get; } = propAnalysis;
+
+        public TileAnalysis TileAnalysis { get; } = tileAnalysis;
 
         public WizardCommands WizardCommands { get; } = wizardCommands;
     }

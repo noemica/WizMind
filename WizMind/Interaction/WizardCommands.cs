@@ -145,16 +145,6 @@ namespace WizMind.Interaction
         {
             this.EnsureWizardMode();
 
-            if (
-                this.luigiAiData.MapType == map.type
-                && (depth.HasValue && depth == -this.luigiAiData.Depth || !depth.HasValue)
-            )
-            {
-                //throw new ArgumentException(
-                //    "Not supported to go to the same map we are currently on"
-                //);
-            }
-
             if (depth.HasValue && depth != MapDefinition.NoMapDepth)
             {
                 if (depth < 1 || depth > 10)
@@ -201,8 +191,9 @@ namespace WizMind.Interaction
 
             var lastAction = this.luigiAiData.LastAction;
 
-            // Attempt to load the map periodically, it may take several seconds to load
-            // When we have confirmed the new map then it's safe to exit
+            // Attempt to load the map periodically, it may take several
+            // seconds to load. When we have confirmed the new map then
+            // it's safe to continue
             while (stopwatch.ElapsedMilliseconds < TimeDuration.MapLoadTime)
             {
                 Thread.Sleep(TimeDuration.MapLoadSleep);
@@ -244,9 +235,6 @@ namespace WizMind.Interaction
                 this.input.SendKeystroke(Keys.K, KeyModifier.AltCtrlShift);
             }
 
-            // Send an input to force luigiAi data to refresh
-            //this.InvalidateData();
-            //this.input.SendKeystroke(Keys.D5, waitForResponse: true);
             this.InvalidateData();
         }
 

@@ -5,7 +5,7 @@ using WizMind.LuigiAi;
 
 namespace WizMind.Instances
 {
-    [DebuggerDisplay("MapTile ({X},{Y}): {Name}")]
+    [DebuggerDisplay("MapTile ({X},{Y}): {DisplayName,nq}")]
     public class MapTile
     {
         private readonly CogmindProcess cogmindProcess;
@@ -37,6 +37,18 @@ namespace WizMind.Instances
             this.y = y;
 
             this.lastAction = this.luigiAiData.LastAction;
+        }
+
+        public string DisplayName
+        {
+            get
+            {
+                var entityString =
+                    this.Entity == null ? string.Empty : $" Entity: {this.Entity.Name}";
+                var itemString = this.Item == null ? string.Empty : $" Item: {this.Item.Name}";
+                var propString = this.Prop == null ? string.Empty : $" Prop: {this.Prop.Name}";
+                return $"\"{this.Name}\"{entityString}{itemString}{propString}";
+            }
         }
 
         public Entity? Entity

@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
-using WizMind.Analysis;
 using WizMind.LuigiAi;
 using static WizMind.Kernel32;
 
@@ -12,11 +11,22 @@ namespace WizMind.Interaction
 
         public Process Process { get; } = process;
 
+        /// <summary>
+        /// Reads the luigi AI struct from Cogmind memory.
+        /// </summary>
+        /// <returns>The marshaled <see cref="LuigiAiStruct"/>.</returns>
         public LuigiAiStruct FetchLuigiAiStruct()
         {
             return this.FetchStruct<LuigiAiStruct>(this.ptr);
         }
 
+        /// <summary>
+        /// Reads a list of values of the given size from Cogmind memory.
+        /// </summary>
+        /// <typeparam name="T">The type of struct to read.</typeparam>
+        /// <param name="arrayPtr">Pointer to the array.</param>
+        /// <param name="arraySize">Size of the array/</param>
+        /// <returns>A list of the marshaled structures.</returns>
         public List<T> FetchList<T>(nint arrayPtr, int arraySize)
         {
             // 4kb
@@ -27,11 +37,12 @@ namespace WizMind.Interaction
                 throw new Exception("Cogmind.exe process exited");
             }
 
-            // Copy the data from the process memory for each element, then marshal as a C# struct
+            // Copy the data from the process memory for each element, then
+            // marshal as a C# struct
             var list = new List<T>(arraySize);
             var size = Marshal.SizeOf<T>();
 
-            // For better performance, read the memory in chunks of up to 4kb
+            // For better performance, read the memory in chunks
             // Process all elements in that chunk before moving onto the next one
             var maxReadCount = MaxReadSize / size;
             var chunkSize = maxReadCount * size;
@@ -88,6 +99,12 @@ namespace WizMind.Interaction
             return list;
         }
 
+        /// <summary>
+        /// Reads a value from the given structure type from Cogmind memory.
+        /// </summary>
+        /// <typeparam name="T">The type of struct to read.</typeparam>
+        /// <param name="ptr">Pointer to the structure/</param>
+        /// <returns>The marshaled structure.</returns>
         public T FetchStruct<T>(nint ptr)
         {
             if (this.Process.HasExited)
