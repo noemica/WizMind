@@ -52,7 +52,7 @@ namespace WizMind.Interaction
             Thread.Sleep(TimeDuration.EnterStringSleep);
 
             this.input.SendKeystroke(Keys.Enter);
-            //Thread.Sleep(TimeDuration.EnterStringSleep);
+            Thread.Sleep(TimeDuration.EnterStringSleep);
         }
 
         /// <summary>
@@ -197,7 +197,7 @@ namespace WizMind.Interaction
             while (stopwatch.ElapsedMilliseconds < TimeDuration.MapLoadTime)
             {
                 Thread.Sleep(TimeDuration.MapLoadSleep);
-                this.luigiAiData.InvalidateData();
+                this.luigiAiData.InvalidateData(false);
 
                 if (
                     lastAction == this.luigiAiData.LastAction
@@ -235,12 +235,10 @@ namespace WizMind.Interaction
                 this.input.SendKeystroke(Keys.K, KeyModifier.AltCtrlShift);
             }
 
-            this.InvalidateData();
-        }
+            Thread.Sleep(TimeDuration.EnterStringSleep);
 
-        private void InvalidateData()
-        {
-            this.luigiAiData.InvalidateData();
+            // Invalidate all data since tile data should now be present
+            this.luigiAiData.InvalidateData(false);
         }
     }
 }

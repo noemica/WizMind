@@ -10,6 +10,7 @@ namespace WizMind
         GameDefinitions definitions,
         GameState gameState,
         Input input,
+        ItemAnalysis itemAnalysis,
         LuigiAiData luigiAiData,
         Movement movement,
         PropAnalysis propAnalysis,
@@ -24,6 +25,8 @@ namespace WizMind
         public GameState GameState { get; } = gameState;
 
         public Input Input { get; } = input;
+
+        public ItemAnalysis ItemAnalysis { get; } = itemAnalysis;
 
         public LuigiAiData LuigiAiData { get; } = luigiAiData;
 

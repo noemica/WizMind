@@ -19,13 +19,10 @@ namespace WizMind.Analysis
         /// <returns>A dictionary of prop definitions to their occurrences.</returns>
         public Dictionary<PropDefinition, int> CalculatePropCounts()
         {
-            var propCounts = new Dictionary<PropDefinition, int>();
-            var visited = new List<List<bool>>();
-
             var height = this.luigiAiData.MapHeight;
             var width = this.luigiAiData.MapWidth;
 
-            // Create list of processed elements
+            var propCounts = new Dictionary<PropDefinition, int>();
             var processed = new bool[width, height];
 
             // Process each tile

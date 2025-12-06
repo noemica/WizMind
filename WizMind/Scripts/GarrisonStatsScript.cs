@@ -5,6 +5,8 @@ namespace WizMind.Scripts
 {
     public class GarrisonStatsScript : IScript
     {
+        private const int NumDepths = 8;
+
         private ScriptWorkspace ws = null!;
 
         public void Initialize(ScriptWorkspace ws)
@@ -14,21 +16,28 @@ namespace WizMind.Scripts
 
         public void Run()
         {
-            const int NumDepths = 8;
+            var allItemCounts = new Dictionary<string, int>();
+            var allItemsCountsAverage = new Dictionary<string, float>();
+            var itemCountsByDepth = new List<Dictionary<string, int>>();
+            var itemCountsByDepthAverages = new List<Dictionary<string, float>>();
 
             var allPropCounts = new Dictionary<PropDefinition, int>();
             var allPropCountsAverage = new Dictionary<PropDefinition, float>();
-            var allTileCounts = new Dictionary<string, int>();
-            var allTilesCountsAverage = new Dictionary<string, float>();
             var propCountsByDepth = new List<Dictionary<PropDefinition, int>>();
             var propCountsByDepthAverages = new List<Dictionary<PropDefinition, float>>();
+
+            var allTileCounts = new Dictionary<string, int>();
+            var allTilesCountsAverage = new Dictionary<string, float>();
             var tileCountsByDepth = new List<Dictionary<string, int>>();
             var tileCountsByDepthAverages = new List<Dictionary<string, float>>();
+
             var numRuns = 0;
 
             // Create lookup of definitions by depth
             for (var depth = NumDepths; depth >= 1; depth--)
             {
+                itemCountsByDepth.Add([]);
+                itemCountsByDepthAverages.Add([]);
                 propCountsByDepth.Add([]);
                 propCountsByDepthAverages.Add([]);
                 tileCountsByDepth.Add([]);
@@ -39,63 +48,86 @@ namespace WizMind.Scripts
             {
                 for (var depth = NumDepths; depth >= 1; depth--)
                 {
-                    // Count the props and tiles at each depth
-                    var (newPropCounts, newTileCounts) = this.ProcessDepth(depth);
-                    var propCounts = propCountsByDepth[depth - 1];
-                    var tileCounts = tileCountsByDepth[depth - 1];
+                    // Count the items, props, and tiles at each depth
+                    var (newItemCounts, newPropCounts, newTileCounts) = this.ProcessDepth(depth);
 
                     // Combine the counts with the old dictionary
-                    foreach (var (prop, newCount) in newPropCounts)
-                    {
-                        propCounts[prop] = propCounts.GetValueOrDefault(prop) + newCount;
-                        allPropCounts[prop] = allPropCounts.GetValueOrDefault(prop) + newCount;
-                    }
-
-                    foreach (var (tile, newCount) in newTileCounts)
-                    {
-                        tileCounts[tile] = tileCounts.GetValueOrDefault(tile) + newCount;
-                        allTileCounts[tile] = allTileCounts.GetValueOrDefault(tile) + newCount;
-                    }
+                    UpdateDepthStats(allItemCounts, newItemCounts, itemCountsByDepth[depth - 1]);
+                    UpdateDepthStats(allPropCounts, newPropCounts, propCountsByDepth[depth - 1]);
+                    UpdateDepthStats(allTileCounts, newTileCounts, tileCountsByDepth[depth - 1]);
                 }
 
                 numRuns += 1;
 
                 // Update average stats
-                foreach (var (prop, count) in allPropCounts)
-                {
-                    allPropCountsAverage[prop] = (float)count / (numRuns * NumDepths);
-                }
+                UpdateAverageStats(
+                    allItemCounts,
+                    allItemsCountsAverage,
+                    itemCountsByDepth,
+                    itemCountsByDepthAverages,
+                    numRuns
+                );
 
-                foreach (
-                    var (counts, averageCounts) in propCountsByDepth.Zip(propCountsByDepthAverages)
-                )
-                {
-                    foreach (var (prop, count) in counts)
-                    {
-                        averageCounts[prop] = (float)count / numRuns;
-                    }
-                }
+                UpdateAverageStats(
+                    allPropCounts,
+                    allPropCountsAverage,
+                    propCountsByDepth,
+                    propCountsByDepthAverages,
+                    numRuns
+                );
 
-                foreach (var (tile, count) in allTileCounts)
-                {
-                    allTilesCountsAverage[tile] = (float)count / (numRuns * NumDepths);
-                }
+                UpdateAverageStats(
+                    allTileCounts,
+                    allTilesCountsAverage,
+                    tileCountsByDepth,
+                    tileCountsByDepthAverages,
+                    numRuns
+                );
 
-                foreach (
-                    var (counts, averageCounts) in tileCountsByDepth.Zip(tileCountsByDepthAverages)
-                )
-                {
-                    foreach (var (tile, count) in counts)
-                    {
-                        averageCounts[tile] = (float)count / numRuns;
-                    }
-                }
-
+                // Start a new run
                 this.ws.GameState.SelfDestruct();
             }
         }
 
+        private static void UpdateDepthStats<TKey>(
+            Dictionary<TKey, int> allCounts,
+            Dictionary<TKey, int> newCounts,
+            Dictionary<TKey, int> depthCounts
+        )
+            where TKey : notnull
+        {
+            foreach (var (key, newCount) in newCounts)
+            {
+                depthCounts[key] = depthCounts.GetValueOrDefault(key) + newCount;
+                allCounts[key] = allCounts.GetValueOrDefault(key) + newCount;
+            }
+        }
+
+        private static void UpdateAverageStats<TKey>(
+            Dictionary<TKey, int> counts,
+            Dictionary<TKey, float> countsAverage,
+            List<Dictionary<TKey, int>> countsByDepth,
+            List<Dictionary<TKey, float>> countsByDepthAverage,
+            int numRuns
+        )
+            where TKey : notnull
+        {
+            foreach (var (key, count) in counts)
+            {
+                countsAverage[key] = (float)count / (numRuns * NumDepths);
+            }
+
+            foreach (var (countDict, averageCounts) in countsByDepth.Zip(countsByDepthAverage))
+            {
+                foreach (var (key, count) in countDict)
+                {
+                    averageCounts[key] = (float)count / numRuns;
+                }
+            }
+        }
+
         private (
+            Dictionary<string, int> ItemCounts,
             Dictionary<PropDefinition, int> PropCounts,
             Dictionary<string, int> TileCounts
         ) ProcessDepth(int depth)
@@ -109,6 +141,7 @@ namespace WizMind.Scripts
             this.ws.WizardCommands.RevealMap();
 
             return (
+                this.ws.ItemAnalysis.CalculateItemCounts(),
                 this.ws.PropAnalysis.CalculatePropCounts(),
                 this.ws.TileAnalysis.CalculateTileCounts()
             );

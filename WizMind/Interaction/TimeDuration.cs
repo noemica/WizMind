@@ -2,22 +2,26 @@
 {
     public static class TimeDuration
     {
-        public static int EscapeMenuSleep = 200;
+        public static readonly int DataRefreshTimeout = 5000;
 
-        public static int EnterStringSleep = 100;
+        public static readonly int EscapeMenuSleep = 200;
 
-        public static int MapLoadTime = 10 * 1000;
+        public static readonly int EnterStringSleep = 100;
 
-        public static int MapLoadSleep = 50;
+        public static readonly int MapLoadTime = 10 * 1000;
 
-        public static int MapPostLoadSleep = 1000;
+        public static readonly int MapLoadSleep = 50;
 
-        public static int NewGameSleep = 1000;
+        public static readonly int MapPostLoadSleep = 1000;
 
-        public static int GameOverSleep = 1000;
+        public static readonly int NewGameSleep = 2000;
 
-        public static int SelfDestructSleep = 1500;
+        public static readonly int GameOverSleep = 1000;
 
-        public static int WizardConsoleSleep = 500;
+        public static readonly int PreSelfDestructSleep = 2000;
+
+        public static readonly int SelfDestructSleep = 1500;
+
+        public static readonly int WizardConsoleSleep = 500;
     }
 }

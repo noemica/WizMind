@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using WizMind.LuigiAi;
 
 namespace WizMind.Interaction
 {
@@ -16,11 +17,18 @@ namespace WizMind.Interaction
         UpRight,
     }
 
-    public class Movement(Input input)
+    public class Movement(Input input, LuigiAiData luigiAIData)
     {
         private readonly Input input = input;
 
-        public void Move(MovementDirection direction)
+        private readonly LuigiAiData luigiAiData = luigiAIData;
+
+        /// <summary>
+        /// Moves in the given direction.
+        /// </summary>
+        /// <param name="direction">The direction to move in.</param>
+        /// <returns><c>true</c> if the move was successful, otherwise <c>false</c>.</returns>
+        public bool Move(MovementDirection direction)
         {
             var key = direction switch
             {
@@ -36,14 +44,21 @@ namespace WizMind.Interaction
             };
 
             this.input.SendKeystroke(key);
+
+            var lastAction = this.luigiAiData.LastAction;
+            this.luigiAiData.InvalidateData(true);
+
+            return lastAction != this.luigiAiData.LastAction;
         }
 
         /// <summary>
-        /// Waits 1 turn
+        /// Waits 1 turn.
         /// </summary>
         public void Wait()
         {
             this.input.SendKeystroke(Keys.NumPad5);
+
+            this.luigiAiData.InvalidateData(true);
         }
     }
 }

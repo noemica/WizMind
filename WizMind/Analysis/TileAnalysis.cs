@@ -22,7 +22,6 @@ namespace WizMind.Analysis
         public Dictionary<string, int> CalculateTileCounts()
         {
             var tileCounts = new Dictionary<string, int>();
-            var visited = new List<List<bool>>();
 
             // Process each tile
             foreach (var tile in this.luigiAiData.AllTiles)

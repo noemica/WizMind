@@ -1,17 +1,16 @@
 ﻿namespace WizMind.Interaction
 {
-    public class GameState
+    public class GameState(Input input)
     {
-        private readonly Input input;
-
-        public GameState(Input input)
-        {
-            this.input = input;
-        }
+        private readonly Input input = input;
 
         public void SelfDestruct()
         {
             var input = this.input;
+
+            // Extra wait to make sure the ? is registered
+            // Without this, the input was being ignored in some cases
+            Thread.Sleep(TimeDuration.PreSelfDestructSleep);
 
             // Open the escape menu with ? since escape is disabled in settings
             input.SendKeystroke(Keys.OemQuestion, KeyModifier.Shift);

@@ -44,7 +44,9 @@ internal class Program
             var input = new Input(cogmindProcess);
             var gameState = new GameState(input);
             var luigiAiData = new LuigiAiData(cogmindProcess, definitions);
-            var movement = new Movement(input);
+            var movement = new Movement(input, luigiAiData);
+
+            var itemAnalysis = new ItemAnalysis(luigiAiData);
             var propAnalysis = new PropAnalysis(luigiAiData);
             var tileAnalysis = new TileAnalysis(luigiAiData);
             var wizardCommands = new WizardCommands(
@@ -59,6 +61,7 @@ internal class Program
                 definitions,
                 gameState,
                 input,
+                itemAnalysis,
                 luigiAiData,
                 movement,
                 propAnalysis,

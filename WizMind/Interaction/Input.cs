@@ -82,14 +82,15 @@ namespace WizMind.Interaction
         /// <param name="keyModifier">Any key modifiers to apply.</param>
         /// <param name="waitForResponse">Whether to wait for the key to be processed or not.</param>
         public void SendKeystroke(
-            Keys key,
+            Keys? key,
             KeyModifier keyModifier = KeyModifier.None,
             bool waitForResponse = true
         )
         {
             // Map the virtual keycode to the scancode
-            var keyVal = (uint)key;
-            var scanCode = MapVirtualKeyA(keyVal, VirtualKeyMapType.MAPVK_VK_TO_VSC);
+            var keyVal = key == null ? 0 : (uint)key;
+            var scanCode =
+                key == null ? 0 : MapVirtualKeyA(keyVal, VirtualKeyMapType.MAPVK_VK_TO_VSC);
 
             var hasAlt = keyModifier.HasFlag(KeyModifier.Alt);
             var hasCtrl = keyModifier.HasFlag(KeyModifier.Ctrl);
@@ -127,11 +128,19 @@ namespace WizMind.Interaction
                     VirtualKeyMapType.MAPVK_VK_TO_VSC
                 );
 
+                // Shift has a tendency to get stuck for some reason
+                // Always send a key up to make sure it's unstuck
+                //this.SendKeyDown(shiftKeyVal.Value, shiftScanCode.Value, waitForResponse);
+                //this.SendKeyUp(shiftKeyVal.Value, shiftScanCode.Value, waitForResponse);
                 this.SendKeyDown(shiftKeyVal.Value, shiftScanCode.Value, waitForResponse);
             }
 
-            // Send the actual key
-            this.SendKeyDown(keyVal, scanCode, waitForResponse);
+            if (key != null)
+            {
+                // Press and unpress the actual key
+                this.SendKeyDown(keyVal, scanCode, waitForResponse);
+                this.SendKeyUp(keyVal, scanCode, waitForResponse);
+            }
 
             // Unpress key modifiers now
             if (hasAlt)
@@ -148,9 +157,6 @@ namespace WizMind.Interaction
             {
                 this.SendKeyUp(shiftKeyVal!.Value, shiftScanCode!.Value, waitForResponse);
             }
-
-            // Unpress actual key
-            this.SendKeyUp(keyVal, scanCode, waitForResponse);
         }
 
         /// <summary>
