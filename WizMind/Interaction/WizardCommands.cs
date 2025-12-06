@@ -197,7 +197,7 @@ namespace WizMind.Interaction
             while (stopwatch.ElapsedMilliseconds < TimeDuration.MapLoadTime)
             {
                 Thread.Sleep(TimeDuration.MapLoadSleep);
-                this.luigiAiData.InvalidateData(false);
+                this.luigiAiData.InvalidateData(DataInvalidationType.WizardActionInvalidation);
 
                 if (
                     lastAction == this.luigiAiData.LastAction
@@ -238,7 +238,7 @@ namespace WizMind.Interaction
             Thread.Sleep(TimeDuration.EnterStringSleep);
 
             // Invalidate all data since tile data should now be present
-            this.luigiAiData.InvalidateData(false);
+            this.luigiAiData.InvalidateData(DataInvalidationType.WizardActionInvalidation);
         }
     }
 }

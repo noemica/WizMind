@@ -46,46 +46,69 @@ namespace WizMind.Scripts
 
             while (true)
             {
-                for (var depth = NumDepths; depth >= 1; depth--)
+                try
                 {
-                    // Count the items, props, and tiles at each depth
-                    var (newItemCounts, newPropCounts, newTileCounts) = this.ProcessDepth(depth);
+                    for (var depth = NumDepths; depth >= 1; depth--)
+                    {
+                        // Count the items, props, and tiles at each depth
+                        var (newItemCounts, newPropCounts, newTileCounts) = this.ProcessDepth(
+                            depth
+                        );
 
-                    // Combine the counts with the old dictionary
-                    UpdateDepthStats(allItemCounts, newItemCounts, itemCountsByDepth[depth - 1]);
-                    UpdateDepthStats(allPropCounts, newPropCounts, propCountsByDepth[depth - 1]);
-                    UpdateDepthStats(allTileCounts, newTileCounts, tileCountsByDepth[depth - 1]);
+                        // Combine the counts with the old dictionary
+                        UpdateDepthStats(
+                            allItemCounts,
+                            newItemCounts,
+                            itemCountsByDepth[depth - 1]
+                        );
+                        UpdateDepthStats(
+                            allPropCounts,
+                            newPropCounts,
+                            propCountsByDepth[depth - 1]
+                        );
+                        UpdateDepthStats(
+                            allTileCounts,
+                            newTileCounts,
+                            tileCountsByDepth[depth - 1]
+                        );
+                    }
+
+                    numRuns += 1;
+
+                    // Update average stats
+                    UpdateAverageStats(
+                        allItemCounts,
+                        allItemsCountsAverage,
+                        itemCountsByDepth,
+                        itemCountsByDepthAverages,
+                        numRuns
+                    );
+
+                    UpdateAverageStats(
+                        allPropCounts,
+                        allPropCountsAverage,
+                        propCountsByDepth,
+                        propCountsByDepthAverages,
+                        numRuns
+                    );
+
+                    UpdateAverageStats(
+                        allTileCounts,
+                        allTilesCountsAverage,
+                        tileCountsByDepth,
+                        tileCountsByDepthAverages,
+                        numRuns
+                    );
+
+                    // Start a new run
+                    this.ws.GameState.SelfDestruct();
                 }
-
-                numRuns += 1;
-
-                // Update average stats
-                UpdateAverageStats(
-                    allItemCounts,
-                    allItemsCountsAverage,
-                    itemCountsByDepth,
-                    itemCountsByDepthAverages,
-                    numRuns
-                );
-
-                UpdateAverageStats(
-                    allPropCounts,
-                    allPropCountsAverage,
-                    propCountsByDepth,
-                    propCountsByDepthAverages,
-                    numRuns
-                );
-
-                UpdateAverageStats(
-                    allTileCounts,
-                    allTilesCountsAverage,
-                    tileCountsByDepth,
-                    tileCountsByDepthAverages,
-                    numRuns
-                );
-
-                // Start a new run
-                this.ws.GameState.SelfDestruct();
+                catch (Exception ex)
+                {
+                    // If we run into an exception, end the run and try again
+                    Console.WriteLine(ex.Message);
+                    this.ws.GameState.SelfDestruct();
+                }
             }
         }
 

@@ -30,6 +30,7 @@ namespace WizMind.Interaction
         /// <returns><c>true</c> if the move was successful, otherwise <c>false</c>.</returns>
         public bool Move(MovementDirection direction)
         {
+            // TODO need to make sure we can actually move into the tile
             var key = direction switch
             {
                 MovementDirection.DownLeft => Keys.NumPad1,
@@ -46,7 +47,7 @@ namespace WizMind.Interaction
             this.input.SendKeystroke(key);
 
             var lastAction = this.luigiAiData.LastAction;
-            this.luigiAiData.InvalidateData(true);
+            this.luigiAiData.InvalidateData(DataInvalidationType.GameActionInvalidation, true);
 
             return lastAction != this.luigiAiData.LastAction;
         }
@@ -58,7 +59,7 @@ namespace WizMind.Interaction
         {
             this.input.SendKeystroke(Keys.NumPad5);
 
-            this.luigiAiData.InvalidateData(true);
+            this.luigiAiData.InvalidateData(DataInvalidationType.GameActionInvalidation, true);
         }
     }
 }

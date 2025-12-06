@@ -5,14 +5,21 @@ using WizMind.Interaction;
 
 namespace WizMind.LuigiAi
 {
+    public enum DataInvalidationType
+    {
+        GameActionInvalidation,
+        WizardActionInvalidation,
+    }
+
     public class LuigiAiData(CogmindProcess cogmindProcess, GameDefinitions definitions)
     {
         private readonly CogmindProcess cogmindProcess = cogmindProcess;
         private Entity? cogmind;
         private LuigiAiStruct? data;
-        private MachineHacking? machineHacking;
-        private int lastAction;
         private readonly GameDefinitions definitions = definitions;
+        private MachineHacking? machineHacking;
+        private int nextTimeout = TimeDuration.ImmediateDataRefreshTimeout;
+        private int lastAction;
         private MapTile[,]? tiles;
 
         // Should only be needed for debugging/sanity checking
@@ -145,24 +152,55 @@ namespace WizMind.LuigiAi
         /// Invalidates all data immediately and triggers a refresh of data
         /// the next time it is requested.
         /// </summary>
-        /// <param name="preserveLastAction">Whether to preserve the last action number</param>
+        /// <param name="type">The type event that triggered the invalidation.</param>
+        /// <param name="immediateRefresh">
+        /// If <c>true</c>, also refreshses the data immediately.
+        /// This is useful if we need to wait for the game data to update
+        /// before we continue if we did an action that will change the game
+        /// state like as moving.
+        /// </param>
         /// <remarks>
-        /// If <c>preserveLastAction</c> is true, the last action is preserved
-        /// and the game's last action is expected to be incremented before
-        /// being updated again. This is expected for anything that would count
-        /// as a game action like moving, shooting, or attaching/detaching
-        /// parts. For certain wizard mode state changes like
+        /// <para>
+        /// If the <c>type</c> is
+        /// <see cref="DataInvalidationType.GameActionInvalidation"/>, the last
+        /// action is preserved and the game's last action is expected to be
+        /// incremented before being updated again. This is for things like
+        /// moving, shooting, or attaching/detaching parts.
+        /// </para>
+        /// <para>
+        /// <para>
+        /// If the <c>type</c> is
+        /// <see cref="DataInvalidationType.WizardActionInvalidation"/>, the
+        /// game's last action is not expected to be incremented and an
+        /// immediate refresh of game data is all that is needed.
+        /// </para>
         /// </remarks>
-        public void InvalidateData(bool preserveLastAction)
+        public void InvalidateData(DataInvalidationType type, bool immediateRefresh = false)
         {
             this.cogmind = null;
             this.data = null;
             this.machineHacking = null;
             this.tiles = null;
 
-            if (!preserveLastAction)
+            switch (type)
             {
-                this.lastAction = 0;
+                case DataInvalidationType.WizardActionInvalidation:
+                    this.lastAction = 0;
+                    this.nextTimeout = TimeDuration.ImmediateDataRefreshTimeout;
+                    break;
+
+                case DataInvalidationType.GameActionInvalidation:
+                    this.nextTimeout = TimeDuration.GameActionRefreshTimeout;
+                    break;
+
+                default:
+                    throw new Exception("Need to support new data invalidation timeout");
+            }
+
+            // Refresh data now if requested.
+            if (immediateRefresh)
+            {
+                this.GetData();
             }
         }
 
@@ -183,30 +221,22 @@ namespace WizMind.LuigiAi
 
             void TryGetData(Stopwatch stopwatch)
             {
-                if (this.lastAction != this.LastActionNoCache)
-                {
-                    // If this gets hit then there is something that should be
-                    // invalidating data that is not
-                    Console.WriteLine("Cached last action didn't match real last action");
-                    this.lastAction = this.LastActionNoCache;
-                }
-
                 // Get the data from memory
                 var data = this.cogmindProcess.FetchLuigiAiStruct();
 
                 if (
                     this.lastAction == 0
                     || data.actionReady != this.lastAction
-                    || stopwatch.ElapsedMilliseconds > TimeDuration.DataRefreshTimeout
+                    || stopwatch.ElapsedMilliseconds > this.nextTimeout
                 )
                 {
+                    if (stopwatch.ElapsedMilliseconds > this.nextTimeout)
+                    {
+                        Console.WriteLine($"Passed wait timeout of {this.nextTimeout}");
+                    }
+
                     this.lastAction = data.actionReady;
                     this.data = data;
-
-                    if (stopwatch.ElapsedMilliseconds > TimeDuration.DataRefreshTimeout)
-                    {
-                        Console.WriteLine("Passed wait timeout");
-                    }
                 }
                 else
                 {
