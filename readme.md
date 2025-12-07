@@ -1,0 +1,1 @@
+This project automates [Cogmind's](https://www.gridsagegames.com/cogmind/) wizard mode by simulating mouse and keyboard inputs.
