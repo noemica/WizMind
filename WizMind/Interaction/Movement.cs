@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using WizMind.LuigiAi;
+﻿using WizMind.LuigiAi;
 
 namespace WizMind.Interaction
 {
@@ -24,14 +21,13 @@ namespace WizMind.Interaction
         private readonly LuigiAiData luigiAiData = luigiAIData;
 
         /// <summary>
-        /// Moves in the given direction.
+        /// Converts a movement direction to the associated numpad key.
         /// </summary>
-        /// <param name="direction">The direction to move in.</param>
-        /// <returns><c>true</c> if the move was successful, otherwise <c>false</c>.</returns>
-        public bool Move(MovementDirection direction)
+        /// <param name="direction">The direction to move.</param>
+        /// <returns>A <see cref="Keys"/> indicating which numpad key to press.</returns>
+        public static Keys DirectionToKey(MovementDirection direction)
         {
-            // TODO need to make sure we can actually move into the tile
-            var key = direction switch
+            return direction switch
             {
                 MovementDirection.DownLeft => Keys.NumPad1,
                 MovementDirection.Down => Keys.NumPad2,
@@ -43,11 +39,21 @@ namespace WizMind.Interaction
                 MovementDirection.UpRight => Keys.NumPad9,
                 _ => throw new Exception($"Invalid movement direction {direction}"),
             };
+        }
 
+        /// <summary>
+        /// Moves in the given direction.
+        /// </summary>
+        /// <param name="direction">The direction to move in.</param>
+        /// <returns><c>true</c> if the move was successful, otherwise <c>false</c>.</returns>
+        public bool Move(MovementDirection direction)
+        {
+            // TODO need to make sure we can actually move into the tile
+            var key = DirectionToKey(direction);
             this.input.SendKeystroke(key);
 
             var lastAction = this.luigiAiData.LastAction;
-            this.luigiAiData.InvalidateData(DataInvalidationType.GameActionInvalidation, true);
+            this.luigiAiData.InvalidateData(DataInvalidationType.AdvancingAction, true);
 
             return lastAction != this.luigiAiData.LastAction;
         }
@@ -59,7 +65,7 @@ namespace WizMind.Interaction
         {
             this.input.SendKeystroke(Keys.NumPad5);
 
-            this.luigiAiData.InvalidateData(DataInvalidationType.GameActionInvalidation, true);
+            this.luigiAiData.InvalidateData(DataInvalidationType.AdvancingAction, true);
         }
     }
 }

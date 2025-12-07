@@ -58,12 +58,20 @@ namespace WizMind.LuigiAi
         MAP_W09,
     }
 
+    // NOTE: Any types that had padding bytes at the end of them need to be
+    // manually specified to marshal only the size of the struct member
+    // Cogmind does not memset the full size of the struct and only assigns
+    // the relevant struct members. Any bytes after the end are suceptible to
+    // containing garbage data that can cause improper marshalling of any
+    // type < 4 bytes (namely bools)
     [StructLayout(LayoutKind.Sequential)]
     public struct LuigiMachineHackingStruct
     {
         public int actionReady;
         public int detectChance;
         public int traceProgress;
+
+        [MarshalAs(UnmanagedType.U1)]
         public bool lastHackSuccess;
     }
 
@@ -71,6 +79,8 @@ namespace WizMind.LuigiAi
     public struct LuigiPropStruct
     {
         public int ID;
+
+        [MarshalAs(UnmanagedType.U1)]
         public bool interactivePiece;
     }
 
@@ -79,6 +89,8 @@ namespace WizMind.LuigiAi
     {
         public int ID;
         public int integrity;
+
+        [MarshalAs(UnmanagedType.U1)]
         public bool equipped;
     }
 

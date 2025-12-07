@@ -4,7 +4,7 @@ using WizMind.LuigiAi;
 
 namespace WizMind.Instances
 {
-    [DebuggerDisplay("Prop: {Name}")]
+    [DebuggerDisplay("Prop: {Name}{InteractiveDebugDisplay,nq}")]
     public class Prop
     {
         private PropDefinition? definition;
@@ -63,6 +63,18 @@ namespace WizMind.Instances
                 return this.name;
             }
         }
+
+        public string Tag
+        {
+            get
+            {
+                this.CheckLastAction();
+                return this.Definition.Tag;
+            }
+        }
+
+        private string InteractiveDebugDisplay =>
+            this.InteractivePiece ? " (interactive)" : " (non-interactive)";
 
         private void CheckLastAction()
         {

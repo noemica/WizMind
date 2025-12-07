@@ -7,8 +7,8 @@ namespace WizMind.LuigiAi
 {
     public enum DataInvalidationType
     {
-        GameActionInvalidation,
-        WizardActionInvalidation,
+        AdvancingAction,
+        NonadvancingAction,
     }
 
     public class LuigiAiData(CogmindProcess cogmindProcess, GameDefinitions definitions)
@@ -17,7 +17,7 @@ namespace WizMind.LuigiAi
         private Entity? cogmind;
         private LuigiAiStruct? data;
         private readonly GameDefinitions definitions = definitions;
-        private MachineHacking? machineHacking;
+        private MachineHackingState? machineHacking;
         private int nextTimeout = TimeDuration.ImmediateDataRefreshTimeout;
         private int lastAction;
         private MapTile[,]? tiles;
@@ -62,7 +62,7 @@ namespace WizMind.LuigiAi
 
         public int Depth => this.GetData().locationDepth;
 
-        public MachineHacking? MachineHacking
+        public MachineHackingState? MachineHackingState
         {
             get
             {
@@ -72,16 +72,20 @@ namespace WizMind.LuigiAi
                         this.cogmindProcess.FetchStruct<LuigiMachineHackingStruct>(
                             this.GetData().machineHacking
                         );
-                    this.machineHacking = new MachineHacking(this, machineHackingStruct);
+                    this.machineHacking = new MachineHackingState(this, machineHackingStruct);
                 }
 
                 return this.machineHacking;
             }
         }
 
-        public MapType MapType => this.GetData().locationMap;
+        public (int X, int Y) MapCursorPosition =>
+            (
+                this.GetData().mapCursorIndex / this.MapHeight,
+                this.GetData().mapCursorIndex % this.MapHeight
+            );
 
-        public int MapCursorIndex => this.GetData().mapCursorIndex;
+        public MapType MapType => this.GetData().locationMap;
 
         public int MapHeight => this.GetData().mapHeight;
 
@@ -162,7 +166,7 @@ namespace WizMind.LuigiAi
         /// <remarks>
         /// <para>
         /// If the <c>type</c> is
-        /// <see cref="DataInvalidationType.GameActionInvalidation"/>, the last
+        /// <see cref="DataInvalidationType.AdvancingAction"/>, the last
         /// action is preserved and the game's last action is expected to be
         /// incremented before being updated again. This is for things like
         /// moving, shooting, or attaching/detaching parts.
@@ -170,9 +174,10 @@ namespace WizMind.LuigiAi
         /// <para>
         /// <para>
         /// If the <c>type</c> is
-        /// <see cref="DataInvalidationType.WizardActionInvalidation"/>, the
+        /// <see cref="DataInvalidationType.NonadvancingAction"/>, the
         /// game's last action is not expected to be incremented and an
-        /// immediate refresh of game data is all that is needed.
+        /// immediate refresh of game data is all that is needed. This is for
+        /// things like wizard mode commands and cursor position movement.
         /// </para>
         /// </remarks>
         public void InvalidateData(DataInvalidationType type, bool immediateRefresh = false)
@@ -184,12 +189,12 @@ namespace WizMind.LuigiAi
 
             switch (type)
             {
-                case DataInvalidationType.WizardActionInvalidation:
+                case DataInvalidationType.NonadvancingAction:
                     this.lastAction = 0;
                     this.nextTimeout = TimeDuration.ImmediateDataRefreshTimeout;
                     break;
 
-                case DataInvalidationType.GameActionInvalidation:
+                case DataInvalidationType.AdvancingAction:
                     this.nextTimeout = TimeDuration.GameActionRefreshTimeout;
                     break;
 

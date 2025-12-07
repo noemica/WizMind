@@ -12,6 +12,7 @@ namespace WizMind
         Input input,
         ItemAnalysis itemAnalysis,
         LuigiAiData luigiAiData,
+        MachineHacking machineHacking,
         Movement movement,
         PropAnalysis propAnalysis,
         TileAnalysis tileAnalysis,
@@ -29,6 +30,8 @@ namespace WizMind
         public ItemAnalysis ItemAnalysis { get; } = itemAnalysis;
 
         public LuigiAiData LuigiAiData { get; } = luigiAiData;
+
+        public MachineHacking MachineHacking { get; } = machineHacking;
 
         public Movement Movement { get; } = movement;
 

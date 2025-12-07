@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using WizMind.Definitions;
+using WizMind.Instances;
 using WizMind.LuigiAi;
 
 namespace WizMind.Interaction
@@ -11,6 +12,20 @@ namespace WizMind.Interaction
         LuigiAiData luigiAiData
     )
     {
+        private enum XDirection
+        {
+            Left,
+            None,
+            Right,
+        }
+
+        private enum YDirection
+        {
+            Up,
+            None,
+            Down,
+        }
+
         private readonly CogmindProcess cogmindProcess = cogmindProcess;
         private readonly GameDefinitions definitions = definitions;
         private readonly Input input = input;
@@ -197,7 +212,7 @@ namespace WizMind.Interaction
             while (stopwatch.ElapsedMilliseconds < TimeDuration.MapLoadTime)
             {
                 Thread.Sleep(TimeDuration.MapLoadSleep);
-                this.luigiAiData.InvalidateData(DataInvalidationType.WizardActionInvalidation);
+                this.luigiAiData.InvalidateData(DataInvalidationType.NonadvancingAction);
 
                 if (
                     lastAction == this.luigiAiData.LastAction
@@ -210,7 +225,7 @@ namespace WizMind.Interaction
                 }
 
                 // Wait for the UI to finish loading after the map is done
-                Thread.Sleep(TimeDuration.MapPostLoadSleep);
+                Thread.Sleep(TimeDuration.PostMapLoadSleep);
 
                 return true;
             }
@@ -238,7 +253,131 @@ namespace WizMind.Interaction
             Thread.Sleep(TimeDuration.EnterStringSleep);
 
             // Invalidate all data since tile data should now be present
-            this.luigiAiData.InvalidateData(DataInvalidationType.WizardActionInvalidation);
+            this.luigiAiData.InvalidateData(DataInvalidationType.NonadvancingAction);
+        }
+
+        /// <summary>
+        /// Teleports to the specified tile.
+        /// </summary>
+        /// <param name="tile">The tile to teleport to.</param
+        public void TeleportToTile(MapTile tile)
+        {
+            this.TeleportToTile(tile.X, tile.Y);
+        }
+
+        /// <summary>
+        /// Teleports to the tile at the specified x/y position.
+        /// </summary>
+        /// <param name="x">The x tile to teleport to.</param>
+        /// <param name="y">The y tile to teleport to.</param>
+        public void TeleportToTile(int x, int y)
+        {
+            // Move the cursor into position
+            this.MoveCursorToPosition(x, y);
+
+            // Disable keyboard mode which will center the cursor at the
+            // focused tile
+            this.input.SendKeystroke(Keys.F2);
+
+            // Alt + right click on the tile to teleport
+            this.input.SendMousepress(MouseButton.RightButton, keyModifier: KeyModifier.Alt);
+
+            this.luigiAiData.InvalidateData(DataInvalidationType.NonadvancingAction);
+        }
+
+        private void MoveCursorToPosition(int x, int y)
+        {
+            // When holding shift the cursor moves 4 tiles instead of just 1
+            const int ShiftDistance = 4;
+
+            // With examineEntersKeyboardMode=1, X ensures we are always in
+            // keyboard mode. If we're starting in mouse mode, the first X will
+            // always jump to the center of the tile Cogmind is on. However, if
+            // we're in keyboard mode to start, focus may not be handled
+            // appropriately if Cogmind is not the focused application.
+            // X -> F2 -> X guarantees that we will always end up with the
+            // correct focus and position.
+            this.input.SendKeystroke(Keys.X);
+            this.input.SendKeystroke(Keys.F2);
+            this.input.SendKeystroke(Keys.X);
+
+            this.luigiAiData.InvalidateData(DataInvalidationType.NonadvancingAction);
+            var (currentX, currentY) = this.luigiAiData.MapCursorPosition;
+
+            while (currentX != x || currentY != y)
+            {
+                var absXDiff = Math.Abs(currentX - x);
+                var minXMoves = (absXDiff / ShiftDistance) + (absXDiff % ShiftDistance);
+
+                var absYDiff = Math.Abs(currentY - y);
+                var minYMoves = (absYDiff / ShiftDistance) + (absYDiff % ShiftDistance);
+
+                var xDirection = x switch
+                {
+                    _ when x < currentX => XDirection.Left,
+                    _ when x == currentX => XDirection.None,
+                    _ => XDirection.Right,
+                };
+                var yDirection = y switch
+                {
+                    _ when y < currentY => YDirection.Up,
+                    _ when y == currentY => YDirection.None,
+                    _ => YDirection.Down,
+                };
+
+                // Use shift if:
+                //   We are only moving along one axis and the number of tiles
+                //       to traverse is >= 4 along that axis
+                //   We are moving along multiple axes and the number of tiles
+                //       to traverse is >= 4 along both axes
+                //   We are moving along multiple axes and the number of tiles
+                //       to traverse is only >= along 1 axis but the total
+                //       number of cursor moves is not increased by jumping
+                //       over the target tile for one axis
+                var useShift =
+                    absXDiff >= ShiftDistance
+                        && (
+                            yDirection == YDirection.None
+                            || absYDiff >= ShiftDistance
+                            || ((ShiftDistance - absYDiff) <= minXMoves)
+                        )
+                    || (
+                        absYDiff >= ShiftDistance
+                        && (
+                            xDirection == XDirection.None || (ShiftDistance - absXDiff) <= minYMoves
+                        )
+                    );
+
+                // Determine which way to move
+                var key = (x, y) switch
+                {
+                    _ when xDirection == XDirection.Left && yDirection == YDirection.Down =>
+                        Keys.NumPad1,
+                    _ when xDirection == XDirection.None && yDirection == YDirection.Down =>
+                        Keys.NumPad2,
+                    _ when xDirection == XDirection.Right && yDirection == YDirection.Down =>
+                        Keys.NumPad3,
+                    _ when xDirection == XDirection.Left && yDirection == YDirection.None =>
+                        Keys.NumPad4,
+                    _ when xDirection == XDirection.Right && yDirection == YDirection.None =>
+                        Keys.NumPad6,
+                    _ when xDirection == XDirection.Left && yDirection == YDirection.Up =>
+                        Keys.NumPad7,
+                    _ when xDirection == XDirection.None && yDirection == YDirection.Up =>
+                        Keys.NumPad8,
+                    _ when xDirection == XDirection.Right && yDirection == YDirection.Up =>
+                        Keys.NumPad9,
+                    _ => Keys.NumPad5,
+                };
+
+                // Update the cursor position
+                this.input.SendKeystroke(key, useShift ? KeyModifier.Shift : KeyModifier.None);
+
+                // Update cursor position
+                Thread.Sleep(TimeDuration.CursorMoveSleep);
+                this.luigiAiData.InvalidateData(DataInvalidationType.NonadvancingAction);
+                (currentX, currentY) = this.luigiAiData.MapCursorPosition;
+            }
         }
     }
 }

@@ -3,7 +3,7 @@ using WizMind.LuigiAi;
 
 namespace WizMind.Scripts
 {
-    public class GarrisonStatsScript : IScript
+    public class GarrisonContentsScript : IScript
     {
         private const int NumDepths = 8;
 

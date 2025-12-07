@@ -118,6 +118,11 @@ namespace WizMind.Interaction
             try
             {
                 ReadProcessMemory(this.Process.Handle, ptr, buffer, size, out var bytesRead);
+                var bytes = new byte[size];
+                for (var i = 0; i < size; i++)
+                {
+                    bytes[i] = Marshal.ReadByte(buffer, i);
+                }
 
                 if (bytesRead == size)
                 {

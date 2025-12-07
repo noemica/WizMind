@@ -44,17 +44,19 @@ internal class Program
             var input = new Input(cogmindProcess);
             var gameState = new GameState(input);
             var luigiAiData = new LuigiAiData(cogmindProcess, definitions);
+            var machineHacking = new MachineHacking(input, luigiAiData);
             var movement = new Movement(input, luigiAiData);
 
-            var itemAnalysis = new ItemAnalysis(luigiAiData);
-            var propAnalysis = new PropAnalysis(luigiAiData);
-            var tileAnalysis = new TileAnalysis(luigiAiData);
             var wizardCommands = new WizardCommands(
                 cogmindProcess,
                 definitions,
                 input,
                 luigiAiData
             );
+
+            var itemAnalysis = new ItemAnalysis(luigiAiData);
+            var propAnalysis = new PropAnalysis(luigiAiData);
+            var tileAnalysis = new TileAnalysis(luigiAiData);
 
             var ws = new ScriptWorkspace(
                 cogmindProcess,
@@ -63,14 +65,21 @@ internal class Program
                 input,
                 itemAnalysis,
                 luigiAiData,
+                machineHacking,
                 movement,
                 propAnalysis,
                 tileAnalysis,
                 wizardCommands
             );
 
+            // In case there are any UI elements open, close them now
+            input.SendKeystroke(Keys.Escape);
+            input.SendKeystroke(Keys.Escape);
+            Thread.Sleep(1000);
+
             // Run script (hardcoded for now)
-            var script = new GarrisonStatsScript();
+            //var script = new GarrisonContentsScript();
+            var script = new ECACountScript();
             script.Initialize(ws);
             script.Run();
 
