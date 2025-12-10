@@ -5,8 +5,32 @@ using WizMind.LuigiAi;
 
 namespace WizMind.Analysis
 {
+    public enum PropType
+    {
+        Fabricator,
+        DoorTerminal,
+        GarrisonAccess,
+        GarrisonTerminal,
+        RecyclingUnit,
+        RepairStation,
+        Scanalyzer,
+        Terminal,
+    }
+
     public class PropAnalysis(LuigiAiData luigiAiData)
     {
+        private static readonly Dictionary<PropType, Func<Prop, bool>> propClassFilters = new()
+        {
+            { PropType.Fabricator, (prop) => prop.Name == "Fabricator" },
+            { PropType.DoorTerminal, (prop) => prop.Name == "Door Terminal" },
+            { PropType.GarrisonAccess, (prop) => prop.Name == "Garrison Access" },
+            { PropType.GarrisonTerminal, (prop) => prop.Name == "Garrison Terminal" },
+            { PropType.RecyclingUnit, (prop) => prop.Name == "Recycling Unit" },
+            { PropType.RepairStation, (prop) => prop.Name == "Repair Station" },
+            { PropType.Scanalyzer, (prop) => prop.Name == "Scanalyzer" },
+            { PropType.Terminal, (prop) => prop.Name == "Terminal" },
+        };
+
         private readonly LuigiAiData luigiAiData = luigiAiData;
 
         /// <summary>
@@ -103,6 +127,41 @@ namespace WizMind.Analysis
                     );
                 }
             }
+        }
+
+        /// <summary>
+        /// Finds all tiles where there is a prop on the tile with the given name.
+        /// </summary>
+        /// <param name="name">The name of the prop to look for.</param>
+        /// <param name="onlyInteractive">Whether to only show interactive prop.</param>
+        /// <returns>A list of found tiles.</returns>
+        public List<MapTile> FindTilesByPropName(string name, bool onlyInteractive = false)
+        {
+            return
+            [
+                .. this.luigiAiData.AllTiles.Where(tile =>
+                    tile.Prop?.Name == name && onlyInteractive ? tile.Prop.InteractivePiece : true
+                ),
+            ];
+        }
+
+        /// <summary>
+        /// Finds all tiles where the type of the tile matches the given class.
+        /// </summary>
+        /// <param name="type">The type or category of the tile.</param>
+        /// <param name="onlyInteractive">Whether to only show interactive prop.</param>
+        /// <returns>A list of found tiles.</returns>
+        public List<MapTile> FindTilesByPropType(PropType type, bool onlyInteractive = false)
+        {
+            var filter = propClassFilters[type];
+            return
+            [
+                .. this.luigiAiData.AllTiles.Where(tile =>
+                    tile.Prop != null
+                    && (!onlyInteractive || tile.Prop.InteractivePiece)
+                    && filter(tile.Prop)
+                ),
+            ];
         }
     }
 }

@@ -7,6 +7,21 @@ namespace WizMind.Scripts
     {
         private const int NumDepths = 8;
 
+        private readonly Dictionary<string, int> allItemCounts = [];
+        private readonly Dictionary<string, float> allItemsCountsAverage = [];
+        private readonly List<Dictionary<string, int>> itemCountsByDepth = [];
+        private readonly List<Dictionary<string, float>> itemCountsByDepthAverages = [];
+
+        private readonly Dictionary<PropDefinition, int> allPropCounts = [];
+        private readonly Dictionary<PropDefinition, float> allPropCountsAverage = [];
+        private readonly List<Dictionary<PropDefinition, int>> propCountsByDepth = [];
+        private readonly List<Dictionary<PropDefinition, float>> propCountsByDepthAverages = [];
+
+        private readonly Dictionary<string, int> allTileCounts = [];
+        private readonly Dictionary<string, float> allTilesCountsAverage = [];
+        private readonly List<Dictionary<string, int>> tileCountsByDepth = [];
+        private readonly List<Dictionary<string, float>> tileCountsByDepthAverages = [];
+
         private ScriptWorkspace ws = null!;
 
         public void Initialize(ScriptWorkspace ws)
@@ -16,32 +31,17 @@ namespace WizMind.Scripts
 
         public void Run()
         {
-            var allItemCounts = new Dictionary<string, int>();
-            var allItemsCountsAverage = new Dictionary<string, float>();
-            var itemCountsByDepth = new List<Dictionary<string, int>>();
-            var itemCountsByDepthAverages = new List<Dictionary<string, float>>();
-
-            var allPropCounts = new Dictionary<PropDefinition, int>();
-            var allPropCountsAverage = new Dictionary<PropDefinition, float>();
-            var propCountsByDepth = new List<Dictionary<PropDefinition, int>>();
-            var propCountsByDepthAverages = new List<Dictionary<PropDefinition, float>>();
-
-            var allTileCounts = new Dictionary<string, int>();
-            var allTilesCountsAverage = new Dictionary<string, float>();
-            var tileCountsByDepth = new List<Dictionary<string, int>>();
-            var tileCountsByDepthAverages = new List<Dictionary<string, float>>();
-
             var numRuns = 0;
 
             // Create lookup of definitions by depth
             for (var depth = NumDepths; depth >= 1; depth--)
             {
-                itemCountsByDepth.Add([]);
-                itemCountsByDepthAverages.Add([]);
-                propCountsByDepth.Add([]);
-                propCountsByDepthAverages.Add([]);
-                tileCountsByDepth.Add([]);
-                tileCountsByDepthAverages.Add([]);
+                this.itemCountsByDepth.Add([]);
+                this.itemCountsByDepthAverages.Add([]);
+                this.propCountsByDepth.Add([]);
+                this.propCountsByDepthAverages.Add([]);
+                this.tileCountsByDepth.Add([]);
+                this.tileCountsByDepthAverages.Add([]);
             }
 
             while (true)
@@ -57,19 +57,19 @@ namespace WizMind.Scripts
 
                         // Combine the counts with the old dictionary
                         UpdateDepthStats(
-                            allItemCounts,
+                            this.allItemCounts,
                             newItemCounts,
-                            itemCountsByDepth[depth - 1]
+                            this.itemCountsByDepth[depth - 1]
                         );
                         UpdateDepthStats(
-                            allPropCounts,
+                            this.allPropCounts,
                             newPropCounts,
-                            propCountsByDepth[depth - 1]
+                            this.propCountsByDepth[depth - 1]
                         );
                         UpdateDepthStats(
-                            allTileCounts,
+                            this.allTileCounts,
                             newTileCounts,
-                            tileCountsByDepth[depth - 1]
+                            this.tileCountsByDepth[depth - 1]
                         );
                     }
 
@@ -77,26 +77,26 @@ namespace WizMind.Scripts
 
                     // Update average stats
                     UpdateAverageStats(
-                        allItemCounts,
-                        allItemsCountsAverage,
-                        itemCountsByDepth,
-                        itemCountsByDepthAverages,
+                        this.allItemCounts,
+                        this.allItemsCountsAverage,
+                        this.itemCountsByDepth,
+                        this.itemCountsByDepthAverages,
                         numRuns
                     );
 
                     UpdateAverageStats(
-                        allPropCounts,
-                        allPropCountsAverage,
-                        propCountsByDepth,
-                        propCountsByDepthAverages,
+                        this.allPropCounts,
+                        this.allPropCountsAverage,
+                        this.propCountsByDepth,
+                        this.propCountsByDepthAverages,
                         numRuns
                     );
 
                     UpdateAverageStats(
-                        allTileCounts,
-                        allTilesCountsAverage,
-                        tileCountsByDepth,
-                        tileCountsByDepthAverages,
+                        this.allTileCounts,
+                        this.allTilesCountsAverage,
+                        this.tileCountsByDepth,
+                        this.tileCountsByDepthAverages,
                         numRuns
                     );
 

@@ -75,10 +75,10 @@ internal class Program
             // In case there are any UI elements open, close them now
             input.SendKeystroke(Keys.Escape);
             input.SendKeystroke(Keys.Escape);
-            Thread.Sleep(1000);
+            Thread.Sleep(TimeDuration.UnknownEscapeSleep);
 
             // Run script (hardcoded for now)
-            //var script = new GarrisonContentsScript();
+            // var script = new GarrisonContentsScript();
             var script = new ECACountScript();
             script.Initialize(ws);
             script.Run();

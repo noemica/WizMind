@@ -2,6 +2,8 @@
 {
     public static class TimeDuration
     {
+        public static readonly int CursorAppearSleep = 100;
+
         public static readonly int CursorMoveSleep = 40;
 
         public static readonly int EscapeMenuSleep = 200;
@@ -40,7 +42,11 @@
 
         public static readonly int PreSelfDestructSleep = 2 * 1000;
 
+        public static readonly int RevealMapSleep = 500;
+
         public static readonly int SelfDestructSleep = (int)(1.5 * 1000);
+
+        public static readonly int UnknownEscapeSleep = 1000;
 
         public static readonly int WizardConsoleSleep = 500;
     }

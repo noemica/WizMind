@@ -8,6 +8,11 @@
         {
             var input = this.input;
 
+            // Close any popups that might be active
+            this.input.SendKeystroke(Keys.Escape);
+            this.input.SendKeystroke(Keys.Escape);
+            Thread.Sleep(TimeDuration.UnknownEscapeSleep);
+
             // Extra wait to make sure the ? is registered
             // Without this, the input was being ignored in some cases
             Thread.Sleep(TimeDuration.PreSelfDestructSleep);

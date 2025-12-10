@@ -2,6 +2,7 @@
 using WizMind.Definitions;
 using WizMind.Instances;
 using WizMind.Interaction;
+using WizMind.Utilities;
 
 namespace WizMind.LuigiAi
 {
@@ -60,7 +61,8 @@ namespace WizMind.LuigiAi
             }
         }
 
-        public int Depth => this.GetData().locationDepth;
+        // For convenience, convert the depth to a positive number
+        public int Depth => -this.GetData().locationDepth;
 
         public MachineHackingState? MachineHackingState
         {
@@ -79,8 +81,8 @@ namespace WizMind.LuigiAi
             }
         }
 
-        public (int X, int Y) MapCursorPosition =>
-            (
+        public MapPoint MapCursorPosition =>
+            new(
                 this.GetData().mapCursorIndex / this.MapHeight,
                 this.GetData().mapCursorIndex % this.MapHeight
             );
@@ -137,6 +139,12 @@ namespace WizMind.LuigiAi
                 return this.tiles;
             }
         }
+
+        /// <summary>
+        /// Gets the coordinates of the tile with Cogmind on it.
+        /// </summary>
+        public MapPoint CogmindCoordinates =>
+            this.AllTiles.First(tile => tile.Entity?.Name == "Cogmind").Coordinates;
 
         /// <summary>
         /// Verifies that the specified last action matches the overall game

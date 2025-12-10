@@ -2,6 +2,7 @@
 using WizMind.Definitions;
 using WizMind.Instances;
 using WizMind.LuigiAi;
+using WizMind.Utilities;
 
 namespace WizMind.Interaction
 {
@@ -31,6 +32,32 @@ namespace WizMind.Interaction
         private readonly Input input = input;
         private bool inWizardMode;
         private readonly LuigiAiData luigiAiData = luigiAiData;
+
+        /// <summary>
+        /// Adds the specified number of slots to the specified slot type.
+        /// </summary>
+        /// <param name="slot">The slot to expand.</param>
+        /// <param name="numSlots">The number of slots to add.</param>
+        public void AddSlots(SlotType slot, int numSlots)
+        {
+            while (numSlots > 0)
+            {
+                // Can only add up to 9 slots at once through the command
+                var slotsToAdd = Math.Min(numSlots, 9);
+                var slotString = slot switch
+                {
+                    SlotType.Power => "po",
+                    SlotType.Propulsion => "pr",
+                    SlotType.Utility => "ut",
+                    SlotType.Weapon => "we",
+                    _ => throw new Exception("Invalid slot type"),
+                };
+
+                // Send the add slots command now
+                this.EnterWizardModeCommand($"as {slotString}{slotsToAdd}");
+                numSlots -= slotsToAdd;
+            }
+        }
 
         /// <summary>
         /// Spawns an item attached to Cogmind.
@@ -217,7 +244,7 @@ namespace WizMind.Interaction
                 if (
                     lastAction == this.luigiAiData.LastAction
                     || this.luigiAiData.MapType != map.type
-                    || (depth.HasValue && -this.luigiAiData.Depth != depth)
+                    || (depth.HasValue && this.luigiAiData.Depth != depth)
                 )
                 {
                     // Data hasn't updated yet
@@ -250,7 +277,7 @@ namespace WizMind.Interaction
                 this.input.SendKeystroke(Keys.K, KeyModifier.AltCtrlShift);
             }
 
-            Thread.Sleep(TimeDuration.EnterStringSleep);
+            Thread.Sleep(TimeDuration.RevealMapSleep);
 
             // Invalidate all data since tile data should now be present
             this.luigiAiData.InvalidateData(DataInvalidationType.NonadvancingAction);
@@ -266,12 +293,23 @@ namespace WizMind.Interaction
         }
 
         /// <summary>
+        /// Teleports to the tile at the specified x/y point.
+        /// </summary>
+        /// <param name="coordinates">The coordinates of the tile to teleport to.</param>
+        public void TeleportToTile(MapPoint point)
+        {
+            this.TeleportToTile(point.x, point.y);
+        }
+
+        /// <summary>
         /// Teleports to the tile at the specified x/y position.
         /// </summary>
         /// <param name="x">The x tile to teleport to.</param>
         /// <param name="y">The y tile to teleport to.</param>
         public void TeleportToTile(int x, int y)
         {
+            this.EnsureWizardMode();
+
             // Move the cursor into position
             this.MoveCursorToPosition(x, y);
 
@@ -301,6 +339,8 @@ namespace WizMind.Interaction
             this.input.SendKeystroke(Keys.F2);
             this.input.SendKeystroke(Keys.X);
 
+            Thread.Sleep(TimeDuration.CursorAppearSleep);
+
             this.luigiAiData.InvalidateData(DataInvalidationType.NonadvancingAction);
             var (currentX, currentY) = this.luigiAiData.MapCursorPosition;
 
@@ -327,13 +367,17 @@ namespace WizMind.Interaction
 
                 // Use shift if:
                 //   We are only moving along one axis and the number of tiles
-                //       to traverse is >= 4 along that axis
+                //       to traverse is >= 4 along that axis.
                 //   We are moving along multiple axes and the number of tiles
-                //       to traverse is >= 4 along both axes
+                //       to traverse is >= 4 along both axes.
                 //   We are moving along multiple axes and the number of tiles
                 //       to traverse is only >= along 1 axis but the total
                 //       number of cursor moves is not increased by jumping
-                //       over the target tile for one axis
+                //       over the target tile for one axis.
+                //   Note: As a result of this last case, we can end up jumping
+                //       back and forth across one axis over the exit, though
+                //       it doesn't add any extra time to do so. At some point
+                //       it might potentially be nice to get rid of this.
                 var useShift =
                     absXDiff >= ShiftDistance
                         && (

@@ -37,6 +37,8 @@ namespace WizMind.Interaction
                 { ' ', (Keys.Space, KeyModifier.None) },
                 { '"', (Keys.OemQuotes, KeyModifier.Shift) },
                 { '\'', (Keys.OemQuotes, KeyModifier.None) },
+                { '(', (Keys.D9, KeyModifier.Shift) },
+                { ')', (Keys.D0, KeyModifier.Shift) },
                 { '-', (Keys.OemMinus, KeyModifier.None) },
                 { '.', (Keys.OemPeriod, KeyModifier.None) },
                 { '/', (Keys.OemQuestion, KeyModifier.None) },

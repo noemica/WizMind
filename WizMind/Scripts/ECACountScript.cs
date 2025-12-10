@@ -1,15 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using WizMind.Analysis;
 using WizMind.Instances;
 using WizMind.Interaction;
 using WizMind.LuigiAi;
+using WizMind.Utilities;
 
 namespace WizMind.Scripts
 {
     public class ECACountScript : IScript
     {
+        private List<float> ecaScorePerRun = [];
+        private List<float> ecaScorePerGarrison = [];
+        private Dictionary<int, List<float>> ecaScorePerGarrisonByDepth = [];
+        private List<int> loopsPerRun = [];
+        private Dictionary<int, List<int>> loopsPerDepth = [];
+        private Dictionary<int, Dictionary<string, int>> mapVisitsPerDepth = [];
         private ScriptWorkspace ws = null!;
+
+        private const int NumDepths = 8;
 
         public void Initialize(ScriptWorkspace ws)
         {
@@ -18,31 +25,76 @@ namespace WizMind.Scripts
 
         public void Run()
         {
+            for (var depth = NumDepths; depth >= 1; depth--)
+            {
+                this.ecaScorePerGarrisonByDepth[depth] = [];
+                this.loopsPerDepth[depth] = [];
+                this.mapVisitsPerDepth[depth] = [];
+            }
+
             while (true)
             {
-                // Add for 100% hacking success
-                this.ws.WizardCommands.AttachItem("Architect God Chip A");
-
-                for (var depth = 8; depth >= 1; depth--)
+                try
                 {
-                    // Start by teleporting to the main map
-                    var map = this.ws.Definitions.MainMaps[depth];
-                    this.ws.WizardCommands.GotoMap(map, depth);
-
-                    this.FindAndEnterGarrison();
+                    this.ProcessRun();
+                }
+                catch (Exception ex)
+                {
+                    // If we run into an exception, end the run and try again
+                    Console.WriteLine(ex.Message);
+                    this.ws.GameState.SelfDestruct();
                 }
             }
         }
 
-        private void FindAndEnterGarrison()
+        private float CalculateEcaBonus(int depth)
         {
             this.ws.WizardCommands.RevealMap();
 
+            // Calculate ECA bonus
+            // Initial .02 is from interior compromised
+            var bonus = 0.02f;
+
+            foreach (var (prop, number) in this.ws.PropAnalysis.CalculatePropCounts())
+            {
+                // Add bonus per machine types
+                if (prop.Name == "RIF Installer")
+                {
+                    bonus += number * 0.02f;
+                }
+                else if (prop.Name == "Garrison Relay")
+                {
+                    bonus += number * 0.01f;
+                }
+                else if (prop.Name == "Phase Generator")
+                {
+                    bonus += number * 0.01f;
+                }
+            }
+
+            // Add ECA bonuses to stats
+            ecaScorePerGarrison.Add(bonus);
+            ecaScorePerGarrisonByDepth[depth].Add(bonus);
+
+            return bonus;
+        }
+
+        private bool TryFindAndEnterGarrison()
+        {
+            this.ws.WizardCommands.RevealMap();
+            var cogmindPosition = this.ws.LuigiAiData.CogmindCoordinates;
+
             // Find the closest interactive Garrison tile
-            var garrisonTile = this.ws.LuigiAiData.AllTiles.First(
-                (tile) =>
-                    tile.Prop?.Name == "Garrison Access" && tile.Prop?.InteractivePiece == true
-            );
+            var garrisonTile = this
+                .ws.PropAnalysis.FindTilesByPropType(PropType.GarrisonAccess, true)
+                .OrderBy(tile => tile.Coordinates.CalculateMaxDistance(cogmindPosition))
+                .FirstOrDefault();
+
+            if (garrisonTile == null)
+            {
+                // Couldn't find a Garrison, return unsccessful
+                return false;
+            }
 
             // Teleport to the open side of the Garrison, then open it.
             // The tile the stairs will be on are closed off on 3/4 directions,
@@ -52,22 +104,34 @@ namespace WizMind.Scripts
             MapTile targetTile;
             MovementDirection direction;
 
-            if (tiles[garrisonTile.X - 1, garrisonTile.Y].Prop == null)
+            if (
+                garrisonTile.X > 1
+                && IsGarrisonEntranceTile(tiles[garrisonTile.X - 1, garrisonTile.Y])
+            )
             {
                 targetTile = tiles[garrisonTile.X - 1, garrisonTile.Y];
                 direction = MovementDirection.Right;
             }
-            else if (tiles[garrisonTile.X + 1, garrisonTile.Y].Prop == null)
+            else if (
+                garrisonTile.X < this.ws.LuigiAiData.MapWidth - 2
+                && IsGarrisonEntranceTile(tiles[garrisonTile.X + 1, garrisonTile.Y])
+            )
             {
                 targetTile = tiles[garrisonTile.X + 1, garrisonTile.Y];
                 direction = MovementDirection.Left;
             }
-            else if (tiles[garrisonTile.X, garrisonTile.Y - 1].Prop == null)
+            else if (
+                garrisonTile.Y > 1
+                && IsGarrisonEntranceTile(tiles[garrisonTile.X, garrisonTile.Y - 1])
+            )
             {
                 targetTile = tiles[garrisonTile.X, garrisonTile.Y - 1];
                 direction = MovementDirection.Down;
             }
-            else if (tiles[garrisonTile.X, garrisonTile.Y + 1].Prop == null)
+            else if (
+                garrisonTile.Y < this.ws.LuigiAiData.MapHeight - 2
+                && IsGarrisonEntranceTile(tiles[garrisonTile.X, garrisonTile.Y + 1])
+            )
             {
                 targetTile = tiles[garrisonTile.X, garrisonTile.Y + 1];
                 direction = MovementDirection.Up;
@@ -83,9 +147,207 @@ namespace WizMind.Scripts
             this.ws.MachineHacking.CloseHackingPopup();
 
             // We are on the stairs so enter them now
-            this.ws.Input.SendKeystroke(Keys.OemPeriod, KeyModifier.Shift);
-            Thread.Sleep(TimeDuration.MapLeaveConfirmationSleep);
-            this.ws.Input.SendKeystroke(Keys.OemPeriod, KeyModifier.Shift);
+            this.ws.Movement.EnterStairs();
+
+            return true;
+
+            bool IsGarrisonEntranceTile(MapTile tile)
+            {
+                if (tile.Prop != null)
+                {
+                    return false;
+                }
+
+                var tiles = this.ws.LuigiAiData.Tiles;
+                var surroundingTiles = new List<MapTile>
+                {
+                    { tiles[tile.X + 1, tile.Y] },
+                    { tiles[tile.X, tile.Y - 1] },
+                    { tiles[tile.X - 1, tile.Y] },
+                    { tiles[tile.X, tile.Y + 1] },
+                };
+
+                return surroundingTiles.Where(tile => tile.Prop?.Name == "Garrison Access").Count()
+                    == 3;
+            }
+        }
+
+        private void ProcessRun()
+        {
+            // Add maximum number of slots ahead of time so we don't
+            // have to pick them on evolutions
+            this.ws.WizardCommands.AddSlots(SlotType.Utility, 19);
+
+            // Add for 100% hacking success
+            this.ws.WizardCommands.AttachItem("Architect God Chip A");
+
+            // Discover Warlord and Section 7 depths
+            this.ws.WizardCommands.GotoMap(MapType.MAP_WAR);
+            var warlordDepth = this.ws.LuigiAiData.Depth;
+            this.ws.WizardCommands.GotoMap(MapType.MAP_SEC);
+            var section7Depth = this.ws.LuigiAiData.Depth;
+
+            var ecaScore = 0.0f;
+            var totalLoops = 0;
+
+            for (var depth = NumDepths; depth >= 1; depth--)
+            {
+                var loopsPerDepth = 0;
+
+                if (depth == warlordDepth)
+                {
+                    // Skip Warlord depth, assuming we always head to
+                    // caves without trying to go into a Garrison
+                    continue;
+                }
+
+                var map = this.ws.Definitions.MainMaps[depth];
+                if (this.ws.LuigiAiData.MapType != map.type || this.ws.LuigiAiData.Depth != depth)
+                {
+                    // Start by teleporting to the main map if needed
+                    this.ws.WizardCommands.GotoMap(map, depth);
+                }
+
+                var continueLooping = true;
+
+                // Process until we don't loop anymore
+                while (this.ws.LuigiAiData.Depth == depth && continueLooping)
+                {
+                    // First save the visit to the map
+                    map = this.ws.Definitions.MapTypeToDefinition[this.ws.LuigiAiData.MapType];
+
+                    var mapVisits = this.mapVisitsPerDepth[depth];
+                    mapVisits[map.name] = mapVisits.GetValueOrDefault(map.name) + 1;
+
+                    if (this.TryFindAndEnterGarrison())
+                    {
+                        // If we entered a Garrison successfully, process the
+                        // contents for ECA bonus
+                        ecaScore += this.CalculateEcaBonus(depth);
+                        this.TakeLoopOrNormalExit();
+
+                        if (this.ws.LuigiAiData.Depth == depth)
+                        {
+                            // Still on same depth means we looped, either to
+                            // another main floor or to a branch
+                            totalLoops += 1;
+                            loopsPerDepth += 1;
+                        }
+
+                        if (depth == 1)
+                        {
+                            // Only allow 1 loop on Access since the Garrisons
+                            // get locked down afterwards
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        switch (this.ws.LuigiAiData.MapType)
+                        {
+                            case MapType.MAP_EXT:
+                            {
+                                // Teleport to Hub since it has a Garrison
+                                this.ws.WizardCommands.GotoMap(MapType.MAP_HUB);
+                                break;
+                            }
+
+                            case MapType.MAP_QUA:
+                                goto case MapType.MAP_TES;
+
+                            case MapType.MAP_TES:
+                            {
+                                // For Testing/Quarantine, try going to S7 as
+                                // there may be a Garrison there
+                                if (this.ws.LuigiAiData.Depth == section7Depth)
+                                {
+                                    this.ws.WizardCommands.GotoMap(MapType.MAP_SEC);
+                                }
+                                else
+                                {
+                                    // If no S7 on this floor then give up
+                                    continueLooping = false;
+                                }
+                                break;
+                            }
+
+                            default:
+                                // Found another branch map without a Garrison
+                                // Just give up and jump to next floor
+                                continueLooping = false;
+                                break;
+                        }
+                    }
+
+                    this.loopsPerDepth[depth].Add(loopsPerDepth);
+                }
+            }
+
+            ecaScorePerRun.Add(ecaScore);
+            loopsPerRun.Add(totalLoops);
+
+            this.ws.GameState.SelfDestruct();
+        }
+
+        private void TakeLoopOrNormalExit()
+        {
+            var initialStairsCoords = this
+                .ws.TileAnalysis.FindTilesByType(TileType.Stairs)
+                .Select(tile => tile.Coordinates)
+                .ToList();
+
+            // The first turn we enter a map, loop exits are not yet active so
+            // we will only find 3 stairs initially. After waiting a turn and
+            // doing another reveal, we will find the 4th exit which is a
+            // guaranteed loop exit if it exists.
+            this.ws.Movement.Wait();
+            this.ws.WizardCommands.RevealMap();
+
+            var allStairsCoords = this
+                .ws.TileAnalysis.FindTilesByType(TileType.Stairs)
+                .Select(tile => tile.Coordinates)
+                .ToList();
+
+            if (allStairsCoords.Count != initialStairsCoords.Count)
+            {
+                // There is a loop exit present, find and then take it
+                foreach (var stairsCoords in allStairsCoords)
+                {
+                    if (initialStairsCoords.Contains(stairsCoords))
+                    {
+                        continue;
+                    }
+
+                    this.ws.WizardCommands.TeleportToTile(stairsCoords);
+                    this.ws.Movement.EnterStairs(garrisonStairs: true);
+
+                    return;
+                }
+
+                throw new Exception("Found loop stairs but failed to take them");
+            }
+
+            // Without a loop exit, perform Force(Override) then take the
+            // nearest stairs
+            var cogmindPosition = this.ws.LuigiAiData.CogmindCoordinates;
+            var terminal = this
+                .ws.PropAnalysis.FindTilesByPropType(PropType.GarrisonTerminal, true)
+                .OrderBy(tile => cogmindPosition.CalculateMaxDistance(tile.Coordinates))
+                .First();
+
+            // Teleport left of the Terminal
+            this.ws.WizardCommands.TeleportToTile(terminal.X - 1, terminal.Y);
+            this.ws.MachineHacking.OpenHackingPopup(MovementDirection.Right);
+            this.ws.MachineHacking.PerformManualHack("Force(Override)");
+            this.ws.MachineHacking.CloseHackingPopup();
+
+            // Find closest exit, then take it
+            cogmindPosition = new MapPoint(terminal.X - 1, terminal.Y);
+            var closestExit = allStairsCoords
+                .OrderBy(coordinates => cogmindPosition.CalculateMaxDistance(coordinates))
+                .First();
+            this.ws.WizardCommands.TeleportToTile(closestExit);
+            this.ws.Movement.EnterStairs(garrisonStairs: true);
         }
     }
 }

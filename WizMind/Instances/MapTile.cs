@@ -2,6 +2,7 @@
 using WizMind.Definitions;
 using WizMind.Interaction;
 using WizMind.LuigiAi;
+using WizMind.Utilities;
 
 namespace WizMind.Instances
 {
@@ -38,6 +39,8 @@ namespace WizMind.Instances
 
             this.lastAction = this.luigiAiData.LastAction;
         }
+
+        public MapPoint Coordinates => new MapPoint(this.X, this.Y);
 
         public string DisplayName
         {

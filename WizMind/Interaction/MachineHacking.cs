@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Windows.Forms;
 using WizMind.LuigiAi;
 
 namespace WizMind.Interaction
@@ -91,11 +92,39 @@ namespace WizMind.Interaction
             var lastAction = this.luigiAiData.MachineHackingState.LastAction;
 
             this.input.SendKeystroke(key);
+            this.WaitForHackUpdate(lastAction);
+        }
 
+        /// <summary>
+        /// Performs a manual hack on a machine.
+        /// </summary>
+        /// <param name="hack">The string to enter into the hacking menu.</param
+        public void PerformManualHack(string hack)
+        {
+            if (
+                this.luigiAiData.MachineHackingState is null
+                || this.luigiAiData.MachineHackingState.LastAction == 0
+            )
+            {
+                throw new InvalidOperationException("Can't hack before the machine is ready");
+            }
+
+            var lastAction = this.luigiAiData.MachineHackingState.LastAction;
+
+            // Open the manual hack entry and send the manual hack
+            this.input.SendKeystroke(Keys.Z);
+            this.input.SendString(hack);
+            this.input.SendKeystroke(Keys.Enter);
+
+            this.WaitForHackUpdate(lastAction);
+        }
+
+        private void WaitForHackUpdate(int lastAction)
+        {
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            while (this.luigiAiData.MachineHackingState.LastAction == lastAction)
+            while (this.luigiAiData.MachineHackingState!.LastAction == lastAction)
             {
                 if (stopwatch.ElapsedMilliseconds > TimeDuration.HackingPopupLoadTimeout)
                 {
@@ -105,15 +134,6 @@ namespace WizMind.Interaction
                 Thread.Sleep(TimeDuration.HackDataRefreshSleep);
                 this.luigiAiData.InvalidateData(DataInvalidationType.NonadvancingAction);
             }
-        }
-
-        /// <summary>
-        /// Performs a manual hack on a machine.
-        /// </summary>
-        /// <param name="hack">The string to enter into the hacking menu.</param
-        public void PerformManualHack(string hack)
-        {
-            throw new NotImplementedException();
         }
     }
 }
