@@ -7,109 +7,72 @@ namespace WizMind.Scripts
     {
         private const int NumDepths = 8;
 
-        private readonly Dictionary<string, int> allItemCounts = [];
-        private readonly Dictionary<string, float> allItemsCountsAverage = [];
-        private readonly List<Dictionary<string, int>> itemCountsByDepth = [];
-        private readonly List<Dictionary<string, float>> itemCountsByDepthAverages = [];
-
-        private readonly Dictionary<PropDefinition, int> allPropCounts = [];
-        private readonly Dictionary<PropDefinition, float> allPropCountsAverage = [];
-        private readonly List<Dictionary<PropDefinition, int>> propCountsByDepth = [];
-        private readonly List<Dictionary<PropDefinition, float>> propCountsByDepthAverages = [];
-
-        private readonly Dictionary<string, int> allTileCounts = [];
-        private readonly Dictionary<string, float> allTilesCountsAverage = [];
-        private readonly List<Dictionary<string, int>> tileCountsByDepth = [];
-        private readonly List<Dictionary<string, float>> tileCountsByDepthAverages = [];
-
+        private State state = null!;
         private ScriptWorkspace ws = null!;
 
-        public void Initialize(ScriptWorkspace ws)
+        public void Initialize(ScriptWorkspace ws, object? state)
         {
             this.ws = ws;
+            this.state = state as State ?? new State();
+
+            this.state.Initialize();
         }
 
-        public void Run()
-        {
-            var numRuns = 0;
+        public Type SerializableStateType => typeof(State);
 
-            // Create lookup of definitions by depth
+        public object SerializableState => this.state;
+
+        public bool ProcessRun(int runNum)
+        {
             for (var depth = NumDepths; depth >= 1; depth--)
             {
-                this.itemCountsByDepth.Add([]);
-                this.itemCountsByDepthAverages.Add([]);
-                this.propCountsByDepth.Add([]);
-                this.propCountsByDepthAverages.Add([]);
-                this.tileCountsByDepth.Add([]);
-                this.tileCountsByDepthAverages.Add([]);
+                // Count the items, props, and tiles at each depth
+                var (newItemCounts, newPropCounts, newTileCounts) = this.ProcessDepth(depth);
+
+                // Combine the counts with the old dictionary
+                UpdateDepthStats(
+                    this.state.AllItemCounts,
+                    newItemCounts,
+                    this.state.ItemCountsByDepth[depth - 1]
+                );
+                UpdateDepthStats(
+                    this.state.AllPropCounts,
+                    newPropCounts,
+                    this.state.PropCountsByDepth[depth - 1]
+                );
+                UpdateDepthStats(
+                    this.state.AllTileCounts,
+                    newTileCounts,
+                    this.state.TileCountsByDepth[depth - 1]
+                );
             }
 
-            while (true)
-            {
-                try
-                {
-                    for (var depth = NumDepths; depth >= 1; depth--)
-                    {
-                        // Count the items, props, and tiles at each depth
-                        var (newItemCounts, newPropCounts, newTileCounts) = this.ProcessDepth(
-                            depth
-                        );
+            // Update average stats
+            UpdateAverageStats(
+                this.state.AllItemCounts,
+                this.state.AllItemsCountsAverage,
+                this.state.ItemCountsByDepth,
+                this.state.ItemCountsByDepthAverages,
+                runNum
+            );
 
-                        // Combine the counts with the old dictionary
-                        UpdateDepthStats(
-                            this.allItemCounts,
-                            newItemCounts,
-                            this.itemCountsByDepth[depth - 1]
-                        );
-                        UpdateDepthStats(
-                            this.allPropCounts,
-                            newPropCounts,
-                            this.propCountsByDepth[depth - 1]
-                        );
-                        UpdateDepthStats(
-                            this.allTileCounts,
-                            newTileCounts,
-                            this.tileCountsByDepth[depth - 1]
-                        );
-                    }
+            UpdateAverageStats(
+                this.state.AllPropCounts,
+                this.state.AllPropCountsAverage,
+                this.state.PropCountsByDepth,
+                this.state.PropCountsByDepthAverages,
+                runNum
+            );
 
-                    numRuns += 1;
+            UpdateAverageStats(
+                this.state.AllTileCounts,
+                this.state.AllTilesCountsAverage,
+                this.state.TileCountsByDepth,
+                this.state.TileCountsByDepthAverages,
+                runNum
+            );
 
-                    // Update average stats
-                    UpdateAverageStats(
-                        this.allItemCounts,
-                        this.allItemsCountsAverage,
-                        this.itemCountsByDepth,
-                        this.itemCountsByDepthAverages,
-                        numRuns
-                    );
-
-                    UpdateAverageStats(
-                        this.allPropCounts,
-                        this.allPropCountsAverage,
-                        this.propCountsByDepth,
-                        this.propCountsByDepthAverages,
-                        numRuns
-                    );
-
-                    UpdateAverageStats(
-                        this.allTileCounts,
-                        this.allTilesCountsAverage,
-                        this.tileCountsByDepth,
-                        this.tileCountsByDepthAverages,
-                        numRuns
-                    );
-
-                    // Start a new run
-                    this.ws.GameState.SelfDestruct();
-                }
-                catch (Exception ex)
-                {
-                    // If we run into an exception, end the run and try again
-                    Console.WriteLine(ex.Message);
-                    this.ws.GameState.SelfDestruct();
-                }
-            }
+            return true;
         }
 
         private static void UpdateDepthStats<TKey>(
@@ -151,7 +114,7 @@ namespace WizMind.Scripts
 
         private (
             Dictionary<string, int> ItemCounts,
-            Dictionary<PropDefinition, int> PropCounts,
+            Dictionary<string, int> PropCounts,
             Dictionary<string, int> TileCounts
         ) ProcessDepth(int depth)
         {
@@ -168,6 +131,56 @@ namespace WizMind.Scripts
                 this.ws.PropAnalysis.CalculatePropCounts(),
                 this.ws.TileAnalysis.CalculateTileCounts()
             );
+        }
+
+        private class State
+        {
+            public Dictionary<string, int> AllItemCounts { get; set; } = [];
+
+            public Dictionary<string, float> AllItemsCountsAverage { get; set; } = [];
+
+            public Dictionary<string, int> AllPropCounts { get; set; } = [];
+
+            public Dictionary<string, float> AllPropCountsAverage { get; set; } = [];
+
+            public Dictionary<string, int> AllTileCounts { get; set; } = [];
+
+            public Dictionary<string, float> AllTilesCountsAverage { get; set; } = [];
+
+            public List<Dictionary<string, int>> ItemCountsByDepth { get; set; } = [];
+
+            public bool Initialized { get; set; }
+
+            public List<Dictionary<string, float>> ItemCountsByDepthAverages { get; set; } = [];
+
+            public List<Dictionary<string, int>> PropCountsByDepth { get; set; } = [];
+
+            public List<Dictionary<string, float>> PropCountsByDepthAverages { get; set; } = [];
+
+            public List<Dictionary<string, int>> TileCountsByDepth { get; set; } = [];
+
+            public List<Dictionary<string, float>> TileCountsByDepthAverages { get; } = [];
+
+            public void Initialize()
+            {
+                if (this.Initialized)
+                {
+                    return;
+                }
+
+                // Create lookup of definitions by depth
+                for (var depth = NumDepths; depth >= 1; depth--)
+                {
+                    this.ItemCountsByDepth.Add([]);
+                    this.ItemCountsByDepthAverages.Add([]);
+                    this.PropCountsByDepth.Add([]);
+                    this.PropCountsByDepthAverages.Add([]);
+                    this.TileCountsByDepth.Add([]);
+                    this.TileCountsByDepthAverages.Add([]);
+                }
+
+                this.Initialized = true;
+            }
         }
     }
 }

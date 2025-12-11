@@ -1,11 +1,13 @@
-﻿using WizMind.Interaction;
-
-namespace WizMind.Scripts
+﻿namespace WizMind.Scripts
 {
     public interface IScript
     {
-        void Initialize(ScriptWorkspace ws);
+        Type SerializableStateType { get; }
 
-        void Run();
+        object SerializableState { get; }
+
+        void Initialize(ScriptWorkspace ws, object? state);
+
+        bool ProcessRun(int runNum);
     }
 }

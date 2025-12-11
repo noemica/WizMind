@@ -8,43 +8,138 @@ namespace WizMind.Scripts
 {
     public class ECACountScript : IScript
     {
-        private List<float> ecaScorePerRun = [];
-        private List<float> ecaScorePerGarrison = [];
-        private Dictionary<int, List<float>> ecaScorePerGarrisonByDepth = [];
-        private List<int> loopsPerRun = [];
-        private Dictionary<int, List<int>> loopsPerDepth = [];
-        private Dictionary<int, Dictionary<string, int>> mapVisitsPerDepth = [];
+        private State state = null!;
         private ScriptWorkspace ws = null!;
 
         private const int NumDepths = 8;
 
-        public void Initialize(ScriptWorkspace ws)
+        public Type SerializableStateType => typeof(State);
+
+        public object SerializableState => this.state;
+
+        public void Initialize(ScriptWorkspace ws, object? state)
         {
             this.ws = ws;
+
+            this.state = state as State ?? new State();
+            this.state.Initialize();
         }
 
-        public void Run()
+        public bool ProcessRun(int runNum)
         {
+            // Add maximum number of slots ahead of time so we don't
+            // have to pick them on evolutions
+            this.ws.WizardCommands.AddSlots(SlotType.Utility, 19);
+
+            // Add for 100% hacking success
+            this.ws.WizardCommands.AttachItem("Architect God Chip A");
+
+            // Discover Warlord and Section 7 depths
+            this.ws.WizardCommands.GotoMap(MapType.MAP_WAR);
+            var warlordDepth = this.ws.LuigiAiData.Depth;
+            this.ws.WizardCommands.GotoMap(MapType.MAP_SEC);
+            var section7Depth = this.ws.LuigiAiData.Depth;
+
+            var ecaScore = 0.0f;
+            var totalLoops = 0;
+
             for (var depth = NumDepths; depth >= 1; depth--)
             {
-                this.ecaScorePerGarrisonByDepth[depth] = [];
-                this.loopsPerDepth[depth] = [];
-                this.mapVisitsPerDepth[depth] = [];
+                var loopsPerDepth = 0;
+
+                if (depth == warlordDepth)
+                {
+                    // Skip Warlord depth, assuming we always head to
+                    // caves without trying to go into a Garrison
+                    continue;
+                }
+
+                var map = this.ws.Definitions.MainMaps[depth];
+                if (this.ws.LuigiAiData.MapType != map.type || this.ws.LuigiAiData.Depth != depth)
+                {
+                    // Start by teleporting to the main map if needed
+                    this.ws.WizardCommands.GotoMap(map, depth);
+                }
+
+                var continueLooping = true;
+
+                // Process until we don't loop anymore
+                while (this.ws.LuigiAiData.Depth == depth && continueLooping)
+                {
+                    // First save the visit to the map
+                    map = this.ws.Definitions.MapTypeToDefinition[this.ws.LuigiAiData.MapType];
+
+                    var mapVisits = this.state.MapVisitsPerDepth[depth];
+                    mapVisits[map.name] = mapVisits.GetValueOrDefault(map.name) + 1;
+
+                    if (this.TryFindAndEnterGarrison())
+                    {
+                        // If we entered a Garrison successfully, process the
+                        // contents for ECA bonus
+                        ecaScore += this.CalculateEcaBonus(depth);
+                        this.TakeLoopOrNormalExit();
+
+                        if (this.ws.LuigiAiData.Depth == depth)
+                        {
+                            // Still on same depth means we looped, either to
+                            // another main floor or to a branch
+                            totalLoops += 1;
+                            loopsPerDepth += 1;
+                        }
+
+                        if (depth == 1)
+                        {
+                            // Only allow 1 loop on Access since the Garrisons
+                            // get locked down afterwards
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        switch (this.ws.LuigiAiData.MapType)
+                        {
+                            case MapType.MAP_EXT:
+                            {
+                                // Teleport to Hub since it has a Garrison
+                                this.ws.WizardCommands.GotoMap(MapType.MAP_HUB);
+                                break;
+                            }
+
+                            case MapType.MAP_QUA:
+                                goto case MapType.MAP_TES;
+
+                            case MapType.MAP_TES:
+                            {
+                                // For Testing/Quarantine, try going to S7 as
+                                // there may be a Garrison there
+                                if (this.ws.LuigiAiData.Depth == section7Depth)
+                                {
+                                    this.ws.WizardCommands.GotoMap(MapType.MAP_SEC);
+                                }
+                                else
+                                {
+                                    // If no S7 on this floor then give up
+                                    continueLooping = false;
+                                }
+                                break;
+                            }
+
+                            default:
+                                // Found another branch map without a Garrison
+                                // Just give up and jump to next floor
+                                continueLooping = false;
+                                break;
+                        }
+                    }
+
+                    this.state.LoopsPerDepth[depth].Add(loopsPerDepth);
+                }
             }
 
-            while (true)
-            {
-                try
-                {
-                    this.ProcessRun();
-                }
-                catch (Exception ex)
-                {
-                    // If we run into an exception, end the run and try again
-                    Console.WriteLine(ex.Message);
-                    this.ws.GameState.SelfDestruct();
-                }
-            }
+            this.state.EcaScorePerRun.Add(ecaScore);
+            this.state.LoopsPerRun.Add(totalLoops);
+
+            return true;
         }
 
         private float CalculateEcaBonus(int depth)
@@ -58,23 +153,23 @@ namespace WizMind.Scripts
             foreach (var (prop, number) in this.ws.PropAnalysis.CalculatePropCounts())
             {
                 // Add bonus per machine types
-                if (prop.Name == "RIF Installer")
+                if (prop == "RIF Installer")
                 {
                     bonus += number * 0.02f;
                 }
-                else if (prop.Name == "Garrison Relay")
+                else if (prop == "Garrison Relay")
                 {
                     bonus += number * 0.01f;
                 }
-                else if (prop.Name == "Phase Generator")
+                else if (prop == "Phase Generator")
                 {
                     bonus += number * 0.01f;
                 }
             }
 
             // Add ECA bonuses to stats
-            ecaScorePerGarrison.Add(bonus);
-            ecaScorePerGarrisonByDepth[depth].Add(bonus);
+            this.state.EcaScorePerGarrison.Add(bonus);
+            this.state.EcaScorePerGarrisonByDepth[depth].Add(bonus);
 
             return bonus;
         }
@@ -172,123 +267,6 @@ namespace WizMind.Scripts
             }
         }
 
-        private void ProcessRun()
-        {
-            // Add maximum number of slots ahead of time so we don't
-            // have to pick them on evolutions
-            this.ws.WizardCommands.AddSlots(SlotType.Utility, 19);
-
-            // Add for 100% hacking success
-            this.ws.WizardCommands.AttachItem("Architect God Chip A");
-
-            // Discover Warlord and Section 7 depths
-            this.ws.WizardCommands.GotoMap(MapType.MAP_WAR);
-            var warlordDepth = this.ws.LuigiAiData.Depth;
-            this.ws.WizardCommands.GotoMap(MapType.MAP_SEC);
-            var section7Depth = this.ws.LuigiAiData.Depth;
-
-            var ecaScore = 0.0f;
-            var totalLoops = 0;
-
-            for (var depth = NumDepths; depth >= 1; depth--)
-            {
-                var loopsPerDepth = 0;
-
-                if (depth == warlordDepth)
-                {
-                    // Skip Warlord depth, assuming we always head to
-                    // caves without trying to go into a Garrison
-                    continue;
-                }
-
-                var map = this.ws.Definitions.MainMaps[depth];
-                if (this.ws.LuigiAiData.MapType != map.type || this.ws.LuigiAiData.Depth != depth)
-                {
-                    // Start by teleporting to the main map if needed
-                    this.ws.WizardCommands.GotoMap(map, depth);
-                }
-
-                var continueLooping = true;
-
-                // Process until we don't loop anymore
-                while (this.ws.LuigiAiData.Depth == depth && continueLooping)
-                {
-                    // First save the visit to the map
-                    map = this.ws.Definitions.MapTypeToDefinition[this.ws.LuigiAiData.MapType];
-
-                    var mapVisits = this.mapVisitsPerDepth[depth];
-                    mapVisits[map.name] = mapVisits.GetValueOrDefault(map.name) + 1;
-
-                    if (this.TryFindAndEnterGarrison())
-                    {
-                        // If we entered a Garrison successfully, process the
-                        // contents for ECA bonus
-                        ecaScore += this.CalculateEcaBonus(depth);
-                        this.TakeLoopOrNormalExit();
-
-                        if (this.ws.LuigiAiData.Depth == depth)
-                        {
-                            // Still on same depth means we looped, either to
-                            // another main floor or to a branch
-                            totalLoops += 1;
-                            loopsPerDepth += 1;
-                        }
-
-                        if (depth == 1)
-                        {
-                            // Only allow 1 loop on Access since the Garrisons
-                            // get locked down afterwards
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        switch (this.ws.LuigiAiData.MapType)
-                        {
-                            case MapType.MAP_EXT:
-                            {
-                                // Teleport to Hub since it has a Garrison
-                                this.ws.WizardCommands.GotoMap(MapType.MAP_HUB);
-                                break;
-                            }
-
-                            case MapType.MAP_QUA:
-                                goto case MapType.MAP_TES;
-
-                            case MapType.MAP_TES:
-                            {
-                                // For Testing/Quarantine, try going to S7 as
-                                // there may be a Garrison there
-                                if (this.ws.LuigiAiData.Depth == section7Depth)
-                                {
-                                    this.ws.WizardCommands.GotoMap(MapType.MAP_SEC);
-                                }
-                                else
-                                {
-                                    // If no S7 on this floor then give up
-                                    continueLooping = false;
-                                }
-                                break;
-                            }
-
-                            default:
-                                // Found another branch map without a Garrison
-                                // Just give up and jump to next floor
-                                continueLooping = false;
-                                break;
-                        }
-                    }
-
-                    this.loopsPerDepth[depth].Add(loopsPerDepth);
-                }
-            }
-
-            ecaScorePerRun.Add(ecaScore);
-            loopsPerRun.Add(totalLoops);
-
-            this.ws.GameState.SelfDestruct();
-        }
-
         private void TakeLoopOrNormalExit()
         {
             var initialStairsCoords = this
@@ -348,6 +326,38 @@ namespace WizMind.Scripts
                 .First();
             this.ws.WizardCommands.TeleportToTile(closestExit);
             this.ws.Movement.EnterStairs(garrisonStairs: true);
+        }
+
+        private class State()
+        {
+            public bool Initialized { get; set; }
+
+            public List<float> EcaScorePerRun { get; set; } = [];
+
+            public List<float> EcaScorePerGarrison { get; set; } = [];
+
+            public Dictionary<int, List<float>> EcaScorePerGarrisonByDepth { get; set; } = [];
+
+            public List<int> LoopsPerRun { get; set; } = [];
+
+            public Dictionary<int, List<int>> LoopsPerDepth { get; set; } = [];
+
+            public Dictionary<int, Dictionary<string, int>> MapVisitsPerDepth { get; set; } = [];
+
+            public void Initialize()
+            {
+                if (!this.Initialized)
+                {
+                    for (var depth = NumDepths; depth >= 1; depth--)
+                    {
+                        this.EcaScorePerGarrisonByDepth[depth] = [];
+                        this.LoopsPerDepth[depth] = [];
+                        this.MapVisitsPerDepth[depth] = [];
+                    }
+
+                    this.Initialized = true;
+                }
+            }
         }
     }
 }

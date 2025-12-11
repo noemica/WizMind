@@ -1,24 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace WizMind.Scripts
+﻿namespace WizMind.Scripts
 {
     public class RifInstallsScript : IScript
     {
         private ScriptWorkspace ws = null!;
 
-        public void Initialize(ScriptWorkspace ws)
+        public object SerializableState => throw new NotImplementedException();
+
+        public Type SerializableStateType => throw new NotImplementedException();
+
+        public void Initialize(ScriptWorkspace ws, object? state)
         {
             this.ws = ws;
         }
 
-        public void Run()
+        public bool ProcessRun(int runNum)
         {
-            while (true)
-            {
-                // TODO
-            }
+            throw new NotImplementedException();
         }
     }
 }

@@ -34,19 +34,19 @@ namespace WizMind.Analysis
         private readonly LuigiAiData luigiAiData = luigiAiData;
 
         /// <summary>
-        /// Calculates the definitions and frequencies of each prop type on the map.
+        /// Calculates the names and frequencies of each prop type on the map.
         /// </summary>
         /// <remarks>
         /// Only works off of known tiles. If the whole map should be checked,
         /// call <see cref="WizardCommands.RevealMap(bool)"/> first.
         /// </remarks>
-        /// <returns>A dictionary of prop definitions to their occurrences.</returns>
-        public Dictionary<PropDefinition, int> CalculatePropCounts()
+        /// <returns>A dictionary of prop names to their occurrences.</returns>
+        public Dictionary<string, int> CalculatePropCounts()
         {
             var height = this.luigiAiData.MapHeight;
             var width = this.luigiAiData.MapWidth;
 
-            var propCounts = new Dictionary<PropDefinition, int>();
+            var propCounts = new Dictionary<string, int>();
             var processed = new bool[width, height];
 
             // Process each tile
@@ -62,7 +62,8 @@ namespace WizMind.Analysis
 
                 if (tile.Prop is { } prop)
                 {
-                    propCounts[prop.Definition] = propCounts.GetValueOrDefault(prop.Definition) + 1;
+                    propCounts[prop.Definition.Name] =
+                        propCounts.GetValueOrDefault(prop.Definition.Name) + 1;
                     CheckSurroundingTileForProp(processed, tile);
                 }
             }

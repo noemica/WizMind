@@ -1,13 +1,14 @@
-﻿namespace WizMind.Interaction
+﻿using WizMind.LuigiAi;
+
+namespace WizMind.Interaction
 {
-    public class GameState(Input input)
+    public class GameState(Input input, LuigiAiData luigiAiData)
     {
         private readonly Input input = input;
+        private readonly LuigiAiData luigiAiData = luigiAiData;
 
         public void SelfDestruct()
         {
-            var input = this.input;
-
             // Close any popups that might be active
             this.input.SendKeystroke(Keys.Escape);
             this.input.SendKeystroke(Keys.Escape);
@@ -18,22 +19,24 @@
             Thread.Sleep(TimeDuration.PreSelfDestructSleep);
 
             // Open the escape menu with ? since escape is disabled in settings
-            input.SendKeystroke(Keys.OemQuestion, KeyModifier.Shift);
+            this.input.SendKeystroke(Keys.OemQuestion, KeyModifier.Shift);
             Thread.Sleep(TimeDuration.EscapeMenuSleep);
 
             // Switch to save menu if not active
-            input.SendKeystroke(Keys.D1);
+            this.input.SendKeystroke(Keys.D1);
             Thread.Sleep(TimeDuration.EscapeMenuSleep);
 
             // Self destruct buttons, long delay is required before second press is registered
-            input.SendKeystroke(Keys.B);
+            this.input.SendKeystroke(Keys.B);
             Thread.Sleep(TimeDuration.SelfDestructSleep);
-            input.SendKeystroke(Keys.B);
+            this.input.SendKeystroke(Keys.B);
             Thread.Sleep(TimeDuration.GameOverSleep);
 
             // On game over screen, space to restart with new run
-            input.SendKeystroke(Keys.Space);
+            this.input.SendKeystroke(Keys.Space);
             Thread.Sleep(TimeDuration.NewGameSleep);
+
+            this.luigiAiData.InvalidateData(DataInvalidationType.NonadvancingAction);
         }
     }
 }
