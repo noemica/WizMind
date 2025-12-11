@@ -1,5 +1,4 @@
-﻿using WizMind.Definitions;
-using WizMind.LuigiAi;
+﻿using WizMind.LuigiAi;
 
 namespace WizMind.Scripts
 {
@@ -20,9 +19,9 @@ namespace WizMind.Scripts
 
         public Type SerializableStateType => typeof(State);
 
-        public object SerializableState => this.state;
+        public IScriptState SerializableState => this.state;
 
-        public bool ProcessRun(int runNum)
+        public bool ProcessRun()
         {
             for (var depth = NumDepths; depth >= 1; depth--)
             {
@@ -53,7 +52,7 @@ namespace WizMind.Scripts
                 this.state.AllItemsCountsAverage,
                 this.state.ItemCountsByDepth,
                 this.state.ItemCountsByDepthAverages,
-                runNum
+                this.state.NumRuns
             );
 
             UpdateAverageStats(
@@ -61,7 +60,7 @@ namespace WizMind.Scripts
                 this.state.AllPropCountsAverage,
                 this.state.PropCountsByDepth,
                 this.state.PropCountsByDepthAverages,
-                runNum
+                this.state.NumRuns
             );
 
             UpdateAverageStats(
@@ -69,7 +68,7 @@ namespace WizMind.Scripts
                 this.state.AllTilesCountsAverage,
                 this.state.TileCountsByDepth,
                 this.state.TileCountsByDepthAverages,
-                runNum
+                this.state.NumRuns
             );
 
             return true;
@@ -133,7 +132,7 @@ namespace WizMind.Scripts
             );
         }
 
-        private class State
+        private class State : IScriptState
         {
             public Dictionary<string, int> AllItemCounts { get; set; } = [];
 
@@ -152,6 +151,8 @@ namespace WizMind.Scripts
             public bool Initialized { get; set; }
 
             public List<Dictionary<string, float>> ItemCountsByDepthAverages { get; set; } = [];
+
+            public int NumRuns { get; set; }
 
             public List<Dictionary<string, int>> PropCountsByDepth { get; set; } = [];
 

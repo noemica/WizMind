@@ -15,7 +15,7 @@ namespace WizMind.Scripts
 
         public Type SerializableStateType => typeof(State);
 
-        public object SerializableState => this.state;
+        public IScriptState SerializableState => this.state;
 
         public void Initialize(ScriptWorkspace ws, object? state)
         {
@@ -25,7 +25,7 @@ namespace WizMind.Scripts
             this.state.Initialize();
         }
 
-        public bool ProcessRun(int runNum)
+        public bool ProcessRun()
         {
             // Add maximum number of slots ahead of time so we don't
             // have to pick them on evolutions
@@ -328,7 +328,7 @@ namespace WizMind.Scripts
             this.ws.Movement.EnterStairs(garrisonStairs: true);
         }
 
-        private class State()
+        private class State : IScriptState
         {
             public bool Initialized { get; set; }
 
@@ -343,6 +343,8 @@ namespace WizMind.Scripts
             public Dictionary<int, List<int>> LoopsPerDepth { get; set; } = [];
 
             public Dictionary<int, Dictionary<string, int>> MapVisitsPerDepth { get; set; } = [];
+
+            public int NumRuns { get; set; }
 
             public void Initialize()
             {

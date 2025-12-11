@@ -36,7 +36,12 @@ namespace WizMind.Interaction
             this.input.SendKeystroke(Keys.Space);
             Thread.Sleep(TimeDuration.NewGameSleep);
 
+            // We should be in scrapyard at this point
             this.luigiAiData.InvalidateData(DataInvalidationType.NonadvancingAction);
+            if (luigiAiData.MapType != MapType.MAP_YRD)
+            {
+                throw new Exception("Self destructing the run failed");
+            }
         }
     }
 }

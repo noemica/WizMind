@@ -10,6 +10,7 @@ namespace WizMind
         GameDefinitions definitions,
         GameState gameState,
         Input input,
+        Inventory inventory,
         ItemAnalysis itemAnalysis,
         LuigiAiData luigiAiData,
         MachineHacking machineHacking,
@@ -26,6 +27,8 @@ namespace WizMind
         public GameState GameState { get; } = gameState;
 
         public Input Input { get; } = input;
+
+        public Inventory Inventory { get; } = inventory;
 
         public ItemAnalysis ItemAnalysis { get; } = itemAnalysis;
 

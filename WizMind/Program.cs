@@ -44,6 +44,7 @@ internal class Program
             );
             var input = new Input(cogmindProcess);
             var luigiAiData = new LuigiAiData(cogmindProcess, definitions);
+            var inventory = new Inventory(input, luigiAiData);
             var gameState = new GameState(input, luigiAiData);
             var machineHacking = new MachineHacking(input, luigiAiData);
             var movement = new Movement(input, luigiAiData);
@@ -64,6 +65,7 @@ internal class Program
                 definitions,
                 gameState,
                 input,
+                inventory,
                 itemAnalysis,
                 luigiAiData,
                 machineHacking,
@@ -79,42 +81,32 @@ internal class Program
             Thread.Sleep(TimeDuration.UnknownEscapeSleep);
 
             // Run script (hardcoded for now)
+            //var script = new ECACountScript();
             //var script = new GarrisonContentsScript();
-            var script = new ECACountScript();
+            var script = new QuarantineContentsScript();
 
             var stateFile = $"{script.GetType().Name.Replace("Script", "State")}.json";
 
             object? state = null;
 
             // Try to deserialize the state file if it exists
-            if (File.Exists(stateFile))
-            {
-                try
-                {
-                    using var stream = File.OpenRead(stateFile);
-                    state = JsonSerializer.Deserialize(stream, script.SerializableStateType);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.Message);
-                }
-            }
+            state = DeserializeState(script, stateFile);
 
             script.Initialize(ws, state);
-
-            var runNum = 1;
 
             while (true)
             {
                 try
                 {
+                    script.SerializableState.NumRuns += 1;
+
                     // Try to process a run of the script
-                    if (!script.ProcessRun(runNum))
+                    if (!script.ProcessRun())
                     {
                         break;
                     }
 
-                    // Serialize the scruot state
+                    // Serialize the script state
                     using (var stream = File.OpenWrite(stateFile))
                     {
                         JsonSerializer.Serialize(stream, script.SerializableState);
@@ -122,11 +114,12 @@ internal class Program
 
                     // Self destruct before continuing again
                     gameState.SelfDestruct();
-                    runNum += 1;
                 }
                 catch (Exception ex)
                 {
-                    // Encountered unknown state, just try to restart
+                    // Encountered unknown state, try to self destruct and
+                    // start a new clearn run
+                    Console.WriteLine("Error during script run");
                     Console.WriteLine(ex.ToString());
 
                     // In case there are any UI elements open, close them now
@@ -135,11 +128,10 @@ internal class Program
                     Thread.Sleep(TimeDuration.UnknownEscapeSleep);
 
                     gameState.SelfDestruct();
-                    if (luigiAiData.MapType != MapType.MAP_YRD)
-                    {
-                        Console.WriteLine("Self destructing the run failed");
-                        break;
-                    }
+
+                    // Try to reload the state from disk
+                    state = DeserializeState(script, stateFile);
+                    script.Initialize(ws, state);
                 }
             }
 
@@ -153,5 +145,24 @@ internal class Program
 
             Console.ReadLine();
         }
+    }
+
+    private static object? DeserializeState(QuarantineContentsScript script, string stateFile)
+    {
+        if (File.Exists(stateFile))
+        {
+            try
+            {
+                using var stream = File.OpenRead(stateFile);
+                return JsonSerializer.Deserialize(stream, script.SerializableStateType);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error deserializing state file:");
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        return null;
     }
 }

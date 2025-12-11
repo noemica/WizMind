@@ -4,7 +4,7 @@
     {
         private ScriptWorkspace ws = null!;
 
-        public object SerializableState => throw new NotImplementedException();
+        public IScriptState SerializableState => throw new NotImplementedException();
 
         public Type SerializableStateType => throw new NotImplementedException();
 
@@ -13,7 +13,7 @@
             this.ws = ws;
         }
 
-        public bool ProcessRun(int runNum)
+        public bool ProcessRun()
         {
             throw new NotImplementedException();
         }

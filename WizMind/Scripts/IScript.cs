@@ -4,10 +4,10 @@
     {
         Type SerializableStateType { get; }
 
-        object SerializableState { get; }
+        IScriptState SerializableState { get; }
 
         void Initialize(ScriptWorkspace ws, object? state);
 
-        bool ProcessRun(int runNum);
+        bool ProcessRun();
     }
 }
