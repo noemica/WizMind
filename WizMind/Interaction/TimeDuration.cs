@@ -49,5 +49,7 @@
         public static readonly int UnknownEscapeSleep = 1000;
 
         public static readonly int WizardConsoleSleep = 500;
+
+        public static readonly int DropItemSleep = 250;
     }
 }

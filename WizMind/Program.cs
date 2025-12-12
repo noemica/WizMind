@@ -109,7 +109,11 @@ internal class Program
                     // Serialize the script state
                     using (var stream = File.OpenWrite(stateFile))
                     {
-                        JsonSerializer.Serialize(stream, script.SerializableState);
+                        JsonSerializer.Serialize(
+                            stream,
+                            script.SerializableState,
+                            script.SerializableStateType
+                        );
                     }
 
                     // Self destruct before continuing again

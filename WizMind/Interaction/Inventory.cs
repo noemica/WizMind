@@ -18,9 +18,13 @@ namespace WizMind.Interaction
                 throw new ArgumentException("Invalid slot");
             }
 
+            // Drop the item and wait for the update
             var key = slot == 0 ? Keys.D0 : Keys.D1 + slot - 1;
             this.input.SendKeystroke(key, KeyModifier.Alt);
-            this.luigiAiData.InvalidateData(DataInvalidationType.AdvancingAction);
+            this.luigiAiData.InvalidateData(DataInvalidationType.AdvancingAction, true);
+
+            // Some items (MAIN.C data core) can take a moment to take effect
+            Thread.Sleep(TimeDuration.DropItemSleep);
         }
     }
 }

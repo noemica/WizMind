@@ -15,6 +15,8 @@ namespace WizMind.Scripts
         {
             this.state = state as State ?? new State();
             this.ws = ws;
+
+            this.state.Initialize();
         }
 
         public bool ProcessRun()
@@ -28,16 +30,24 @@ namespace WizMind.Scripts
             this.ws.Inventory.DropItem(1);
             this.ws.Movement.Wait();
 
-            foreach (var (item, count) in this.ws.ItemAnalysis.CalculateItemCounts())
+            // Count items
+            var itemCounts = this.ws.ItemAnalysis.CalculateItemCounts();
+            this.state.ItemCounts.Add(itemCounts);
+
+            foreach (var (item, count) in itemCounts)
             {
-                this.state.ItemFrequencies[item] =
-                    this.state.ItemFrequencies.GetValueOrDefault(item) + count;
+                this.state.AllItemCounts[item] =
+                    this.state.AllItemCounts.GetValueOrDefault(item) + count;
             }
 
-            foreach (var (prop, count) in this.ws.PropAnalysis.CalculatePropCounts())
+            // Count props
+            var propCounts = this.ws.PropAnalysis.CalculatePropCounts();
+            this.state.PropCounts.Add(propCounts);
+
+            foreach (var (prop, count) in propCounts)
             {
-                this.state.PropFrequencies[prop] =
-                    this.state.PropFrequencies.GetValueOrDefault(prop) + count;
+                this.state.AllPropCounts[prop] =
+                    this.state.AllPropCounts.GetValueOrDefault(prop) + count;
             }
 
             return true;
@@ -45,13 +55,17 @@ namespace WizMind.Scripts
 
         private class State : IScriptState
         {
-            public Dictionary<string, int> ItemFrequencies = [];
+            public Dictionary<string, int> AllPropCounts { get; set; } = [];
 
-            public Dictionary<string, int> PropFrequencies = [];
+            public Dictionary<string, int> AllItemCounts { get; set; } = [];
+
+            public List<Dictionary<string, int>> ItemCounts { get; set; } = [];
 
             public bool Initialized { get; set; }
 
             public int NumRuns { get; set; }
+
+            public List<Dictionary<string, int>> PropCounts { get; set; } = [];
 
             public void Initialize()
             {
