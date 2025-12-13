@@ -81,9 +81,11 @@ internal class Program
             Thread.Sleep(TimeDuration.UnknownEscapeSleep);
 
             // Run script (hardcoded for now)
-            //var script = new ECACountScript();
-            //var script = new GarrisonContentsScript();
-            var script = new QuarantineContentsScript();
+            IScript script;
+            //script = new ECACountScript();
+            //script = new GarrisonContentsScript();
+            script = new TestingContentsScript();
+            //script = new QuarantineContentsScript();
 
             var stateFile = $"{script.GetType().Name.Replace("Script", "State")}.json";
 
@@ -151,7 +153,7 @@ internal class Program
         }
     }
 
-    private static object? DeserializeState(QuarantineContentsScript script, string stateFile)
+    private static object? DeserializeState(IScript script, string stateFile)
     {
         if (File.Exists(stateFile))
         {

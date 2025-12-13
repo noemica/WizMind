@@ -131,9 +131,9 @@ namespace WizMind.Scripts
                                 break;
                         }
                     }
-
-                    this.state.LoopsPerDepth[depth].Add(loopsPerDepth);
                 }
+
+                this.state.LoopsPerDepth[depth].Add(loopsPerDepth);
             }
 
             this.state.EcaScorePerRun.Add(ecaScore);
