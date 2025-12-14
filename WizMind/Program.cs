@@ -84,7 +84,8 @@ internal class Program
             IScript script;
             //script = new ECACountScript();
             //script = new GarrisonContentsScript();
-            script = new TestingContentsScript();
+            script = new GarrisonLoopScript();
+            //script = new TestingContentsScript();
             //script = new QuarantineContentsScript();
 
             var stateFile = $"{script.GetType().Name.Replace("Script", "State")}.json";

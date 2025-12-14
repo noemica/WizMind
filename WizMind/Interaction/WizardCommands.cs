@@ -213,10 +213,16 @@ namespace WizMind.Interaction
 
                 var mainMap = this.definitions.MainMaps[depth.Value];
 
-                var success = this.GotoMap(mainMap, depth.Value);
-                if (!success)
+                if (
+                    this.luigiAiData.MapType != mainMap.type
+                    || this.luigiAiData.Depth != depth.Value
+                )
                 {
-                    throw new Exception($"Failed to go to main map {mainMap.name}");
+                    var success = this.GotoMap(mainMap, depth.Value);
+                    if (!success)
+                    {
+                        throw new Exception($"Failed to go to main map {mainMap.name}");
+                    }
                 }
             }
 

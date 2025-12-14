@@ -6,6 +6,8 @@
 
         public static readonly int CursorMoveSleep = 40;
 
+        public static readonly int DropItemSleep = 250;
+
         public static readonly int EscapeMenuSleep = 200;
 
         public static readonly int EnterStringSleep = 100;
@@ -49,7 +51,5 @@
         public static readonly int UnknownEscapeSleep = 1000;
 
         public static readonly int WizardConsoleSleep = 500;
-
-        public static readonly int DropItemSleep = 250;
     }
 }
