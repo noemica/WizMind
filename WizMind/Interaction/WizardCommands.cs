@@ -153,14 +153,15 @@ namespace WizMind.Interaction
         /// </summary>
         /// <param name="map">The name of the map.</param>
         /// <param name="depth">Depth of the map to go to if multiple depths are available.</param>
-        public bool GotoMap(string mapName, int? depth = null)
+        /// <param name="force">Whether to force teleport to the map if Cogmind is already on it.</param>
+        public bool GotoMap(string mapName, int? depth = null, bool force = false)
         {
             if (!this.definitions.MapNameToDefinition.TryGetValue(mapName, out var map))
             {
                 throw new ArgumentException($"Map {mapName} is not supported");
             }
 
-            return this.GotoMap(map, depth);
+            return this.GotoMap(map, depth, force);
         }
 
         /// <summary>
@@ -168,14 +169,15 @@ namespace WizMind.Interaction
         /// </summary>
         /// <param name="map">The type of the map.</param>
         /// <param name="depth">Depth of the map to go to if multiple depths are available.</param>
-        public bool GotoMap(MapType mapType, int? depth = null)
+        /// <param name="force">Whether to force teleport to the map if Cogmind is already on it.</param>
+        public bool GotoMap(MapType mapType, int? depth = null, bool force = false)
         {
             if (!this.definitions.MapTypeToDefinition.TryGetValue(mapType, out var map))
             {
                 throw new ArgumentException($"Map {mapType} is not supported");
             }
 
-            return this.GotoMap(map, depth);
+            return this.GotoMap(map, depth, force);
         }
 
         /// <summary>
@@ -183,7 +185,8 @@ namespace WizMind.Interaction
         /// </summary>
         /// <param name="map">The map to go to.</param>
         /// <param name="depth">Depth of the map to go to if multiple depths are available.</param>
-        public bool GotoMap(MapDefinition map, int? depth = null)
+        /// <param name="force">Whether to force teleport to the map if Cogmind is already on it.</param>
+        public bool GotoMap(MapDefinition map, int? depth = null, bool force = false)
         {
             this.EnsureWizardMode();
 
@@ -202,6 +205,17 @@ namespace WizMind.Interaction
                 }
             }
 
+            if (
+                !force
+                && this.luigiAiData.MapType == map.type
+                && (!depth.HasValue || this.luigiAiData.Depth == depth.Value)
+            )
+            {
+                // Already on the map, don't teleport to it again unless we
+                // are forcing the map teleport
+                return true;
+            }
+
             if (map.mainMapRequired)
             {
                 // If a branch requires we visit a main map beforehand, go there first
@@ -213,12 +227,13 @@ namespace WizMind.Interaction
 
                 var mainMap = this.definitions.MainMaps[depth.Value];
 
+                // Only need to go to the main map if not already forced
                 if (
                     this.luigiAiData.MapType != mainMap.type
                     || this.luigiAiData.Depth != depth.Value
                 )
                 {
-                    var success = this.GotoMap(mainMap, depth.Value);
+                    var success = this.GotoMap(mainMap, depth.Value, force);
                     if (!success)
                     {
                         throw new Exception($"Failed to go to main map {mainMap.name}");

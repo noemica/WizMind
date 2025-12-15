@@ -55,11 +55,9 @@ namespace WizMind.Scripts
                 }
 
                 var map = this.ws.Definitions.MainMaps[depth];
-                if (this.ws.LuigiAiData.MapType != map.type || this.ws.LuigiAiData.Depth != depth)
-                {
-                    // Start by teleporting to the main map if needed
-                    this.ws.WizardCommands.GotoMap(map, depth);
-                }
+
+                // Start by teleporting to the main map if needed
+                this.ws.WizardCommands.GotoMap(map, depth);
 
                 var continueLooping = true;
 

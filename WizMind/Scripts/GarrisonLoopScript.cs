@@ -22,6 +22,7 @@ namespace WizMind.Scripts
             this.ws = ws;
 
             this.state = state as State ?? new State();
+            this.state.Initialize();
         }
 
         public bool ProcessRun()
@@ -33,62 +34,86 @@ namespace WizMind.Scripts
             // Add for 100% hacking success
             this.ws.WizardCommands.AttachItem("Architect God Chip A");
 
+            // Discover Storage and Extension depths
+            this.ws.WizardCommands.GotoMap(MapType.MAP_STO);
+            var storageDepth = this.ws.LuigiAiData.Depth;
+            this.ws.WizardCommands.GotoMap(MapType.MAP_EXT);
+            var extensionDepth = this.ws.LuigiAiData.Depth;
+            this.ws.WizardCommands.GotoMap(MapType.MAP_ARM);
+            var armoryDepth = this.ws.LuigiAiData.Depth;
+
+            // Create list of depths to visit
+            var depthsToVisit = new List<int>();
+            if (storageDepth != 9)
+            {
+                depthsToVisit.Add(storageDepth);
+            }
+
+            depthsToVisit.Add(extensionDepth);
+
+            if (armoryDepth != extensionDepth && armoryDepth == 4)
+            {
+                depthsToVisit.Add(armoryDepth);
+            }
+
+            depthsToVisit.Add(3);
+            depthsToVisit.Add(2);
+
+            if (armoryDepth == 4 && extensionDepth != 4)
+            {
+                depthsToVisit.Add(armoryDepth);
+            }
+
             // Go to the depth's Garrison and take a normal exit
-            for (var depth = NumDepths; depth >= 2; depth--)
+            foreach (var depth in depthsToVisit)
             {
                 this.ws.WizardCommands.GotoMap(this.ws.Definitions.MainMaps[depth].type, depth);
-                if (!this.TryFindAndEnterGarrison())
-                {
-                    this.ws.WizardCommands.GotoMap(MapType.MAP_GAR, depth);
-                }
-                this.TakeExit();
 
-                // Check whether we looped
-                if (this.ws.LuigiAiData.Depth == depth)
+                while (true)
                 {
-                    this.state.NumLoopsPerDepth[depth] =
-                        this.state.NumLoopsPerDepth.GetValueOrDefault(depth) + 1;
-                }
+                    var loop = 0;
 
-                this.state.NumLoopAttemptsPerDepth[depth] =
-                    this.state.NumLoopAttemptsPerDepth.GetValueOrDefault(depth) + 1;
+                    this.FindAndEnterGarrison();
+                    this.TakeExit();
+
+                    this.state.LoopAttemptsPerDepth[depth][loop] =
+                        this.state.LoopAttemptsPerDepth[depth].GetValueOrDefault(loop) + 1;
+
+                    // Check whether we looped
+                    if (this.ws.LuigiAiData.Depth == depth)
+                    {
+                        // Save loop
+                        this.state.LoopsPerDepth[depth][loop] =
+                            this.state.LoopsPerDepth[depth].GetValueOrDefault(loop) + 1;
+
+                        if (this.ws.LuigiAiData.MapType != this.ws.Definitions.MainMaps[depth].type)
+                        {
+                            // Looped into a branch, exit now
+                            this.state.BranchLoopsPerDepth[depth][loop] =
+                                this.state.BranchLoopsPerDepth[depth].GetValueOrDefault(loop) + 1;
+                            break;
+                        }
+
+                        // Save map we looped into
+                        if (!this.state.LoopedMapPerDepth[depth].TryGetValue(loop, out var maps))
+                        {
+                            maps = [];
+                            this.state.LoopedMapPerDepth[depth][loop] = maps;
+                        }
+                        maps[this.ws.LuigiAiData.MapType] =
+                            maps.GetValueOrDefault(this.ws.LuigiAiData.MapType) + 1;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
             }
 
             return true;
         }
 
-        private void TakeExit()
-        {
-            this.ws.WizardCommands.RevealMap();
-
-            var allStairsCoords = this
-                .ws.TileAnalysis.FindTilesByType(TileType.Stairs)
-                .Select(tile => tile.Coordinates)
-                .ToList();
-
-            // Perform Force(Override) then take the nearest stairs
-            var cogmindPosition = this.ws.LuigiAiData.CogmindCoordinates;
-            var terminal = this
-                .ws.PropAnalysis.FindTilesByPropType(PropType.GarrisonTerminal, true)
-                .OrderBy(tile => cogmindPosition.CalculateMaxDistance(tile.Coordinates))
-                .First();
-
-            // Teleport left of the Terminal
-            this.ws.WizardCommands.TeleportToTile(terminal.X - 1, terminal.Y);
-            this.ws.MachineHacking.OpenHackingPopup(MovementDirection.Right);
-            this.ws.MachineHacking.PerformManualHack("Force(Override)");
-            this.ws.MachineHacking.CloseHackingPopup();
-
-            // Find closest exit, then take it
-            cogmindPosition = new MapPoint(terminal.X - 1, terminal.Y);
-            var closestExit = allStairsCoords
-                .OrderBy(coordinates => cogmindPosition.CalculateMaxDistance(coordinates))
-                .First();
-            this.ws.WizardCommands.TeleportToTile(closestExit);
-            this.ws.Movement.EnterStairs(garrisonStairs: true);
-        }
-
-        private bool TryFindAndEnterGarrison()
+        private void FindAndEnterGarrison()
         {
             this.ws.WizardCommands.RevealMap();
             var cogmindPosition = this.ws.LuigiAiData.CogmindCoordinates;
@@ -102,7 +127,7 @@ namespace WizMind.Scripts
             if (garrisonTile == null)
             {
                 // Couldn't find a Garrison, return unsccessful
-                return false;
+                throw new Exception("Couldn't find garrison tile");
             }
 
             // Teleport to the open side of the Garrison, then open it.
@@ -158,7 +183,7 @@ namespace WizMind.Scripts
             // We are on the stairs so enter them now
             this.ws.Movement.EnterStairs();
 
-            return true;
+            return;
 
             bool IsGarrisonEntranceTile(MapTile tile)
             {
@@ -181,13 +206,69 @@ namespace WizMind.Scripts
             }
         }
 
+        private void TakeExit()
+        {
+            this.ws.WizardCommands.RevealMap();
+
+            var allStairsCoords = this
+                .ws.TileAnalysis.FindTilesByType(TileType.Stairs)
+                .Select(tile => tile.Coordinates)
+                .ToList();
+
+            // Perform Force(Override) then take the nearest stairs
+            var cogmindPosition = this.ws.LuigiAiData.CogmindCoordinates;
+            var terminal = this
+                .ws.PropAnalysis.FindTilesByPropType(PropType.GarrisonTerminal, true)
+                .OrderBy(tile => cogmindPosition.CalculateMaxDistance(tile.Coordinates))
+                .First();
+
+            // Teleport left of the Terminal
+            this.ws.WizardCommands.TeleportToTile(terminal.X - 1, terminal.Y);
+            this.ws.MachineHacking.OpenHackingPopup(MovementDirection.Right);
+            this.ws.MachineHacking.PerformManualHack("Force(Override)");
+            this.ws.MachineHacking.CloseHackingPopup();
+
+            // Find closest exit, then take it
+            cogmindPosition = new MapPoint(terminal.X - 1, terminal.Y);
+            var closestExit = allStairsCoords
+                .OrderBy(coordinates => cogmindPosition.CalculateMaxDistance(coordinates))
+                .First();
+            this.ws.WizardCommands.TeleportToTile(closestExit);
+            this.ws.Movement.EnterStairs(garrisonStairs: true);
+        }
+
         private class State : IScriptState
         {
-            public Dictionary<int, int> NumLoopAttemptsPerDepth { get; set; } = [];
+            public Dictionary<int, Dictionary<int, int>> BranchLoopsPerDepth { get; set; } = [];
 
-            public Dictionary<int, int> NumLoopsPerDepth { get; set; } = [];
+            public bool Initialized { get; set; }
+
+            public Dictionary<int, Dictionary<int, int>> LoopAttemptsPerDepth { get; set; } = [];
+
+            public Dictionary<int, Dictionary<int, int>> LoopsPerDepth { get; set; } = [];
+
+            public Dictionary<
+                int,
+                Dictionary<int, Dictionary<MapType, int>>
+            > LoopedMapPerDepth { get; set; } = [];
 
             public int NumRuns { get; set; }
+
+            public void Initialize()
+            {
+                if (this.Initialized)
+                {
+                    return;
+                }
+
+                for (var i = 1; i < NumDepths; i++)
+                {
+                    this.BranchLoopsPerDepth[i] = [];
+                    this.LoopAttemptsPerDepth[i] = [];
+                    this.LoopsPerDepth[i] = [];
+                    this.LoopedMapPerDepth[i] = [];
+                }
+            }
         }
     }
 }
