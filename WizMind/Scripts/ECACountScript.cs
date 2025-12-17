@@ -34,11 +34,16 @@ namespace WizMind.Scripts
             // Add for 100% hacking success
             this.ws.WizardCommands.AttachItem("Architect God Chip A");
 
+            // Save game so evolutions don't get messed up
+            this.ws.GameState.SaveGame();
+
             // Discover Warlord and Section 7 depths
             this.ws.WizardCommands.GotoMap(MapType.MAP_WAR);
             var warlordDepth = this.ws.LuigiAiData.Depth;
             this.ws.WizardCommands.GotoMap(MapType.MAP_SEC);
             var section7Depth = this.ws.LuigiAiData.Depth;
+
+            this.ws.GameState.LoadGame();
 
             var ecaScore = 0.0f;
             var totalLoops = 0;
