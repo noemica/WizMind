@@ -32,7 +32,7 @@
 
         public static readonly int MapLoadSleep = 50;
 
-        public static readonly int NewGameSleep = 2 * 1000;
+        public static readonly int NewGameSleep = 3 * 1000;
 
         public static readonly int PostDataFetchSleep = 500;
 
@@ -45,6 +45,8 @@
         public static readonly int PreSelfDestructSleep = 2 * 1000;
 
         public static readonly int RevealMapSleep = 500;
+
+        public static readonly int SaveGameSleep = 1000;
 
         public static readonly int SelfDestructSleep = (int)(1.5 * 1000);
 

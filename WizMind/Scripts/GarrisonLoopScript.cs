@@ -35,12 +35,18 @@ namespace WizMind.Scripts
             this.ws.WizardCommands.AttachItem("Architect God Chip A");
 
             // Discover Storage and Extension depths
+            this.ws.GameState.SaveGame();
             this.ws.WizardCommands.GotoMap(MapType.MAP_STO);
             var storageDepth = this.ws.LuigiAiData.Depth;
             this.ws.WizardCommands.GotoMap(MapType.MAP_EXT);
             var extensionDepth = this.ws.LuigiAiData.Depth;
             this.ws.WizardCommands.GotoMap(MapType.MAP_ARM);
             var armoryDepth = this.ws.LuigiAiData.Depth;
+
+            // Need to load the game or else the game does funky things with
+            // evolved slots disappearing which causes the evolution screen
+            // to show up
+            this.ws.GameState.LoadGame();
 
             // Create list of depths to visit
             var depthsToVisit = new List<int>();
@@ -59,20 +65,14 @@ namespace WizMind.Scripts
             depthsToVisit.Add(3);
             depthsToVisit.Add(2);
 
-            if (armoryDepth == 4 && extensionDepth != 4)
-            {
-                depthsToVisit.Add(armoryDepth);
-            }
-
             // Go to the depth's Garrison and take a normal exit
             foreach (var depth in depthsToVisit)
             {
                 this.ws.WizardCommands.GotoMap(this.ws.Definitions.MainMaps[depth].type, depth);
 
+                var loop = 0;
                 while (true)
                 {
-                    var loop = 0;
-
                     this.FindAndEnterGarrison();
                     this.TakeExit();
 
@@ -86,14 +86,6 @@ namespace WizMind.Scripts
                         this.state.LoopsPerDepth[depth][loop] =
                             this.state.LoopsPerDepth[depth].GetValueOrDefault(loop) + 1;
 
-                        if (this.ws.LuigiAiData.MapType != this.ws.Definitions.MainMaps[depth].type)
-                        {
-                            // Looped into a branch, exit now
-                            this.state.BranchLoopsPerDepth[depth][loop] =
-                                this.state.BranchLoopsPerDepth[depth].GetValueOrDefault(loop) + 1;
-                            break;
-                        }
-
                         // Save map we looped into
                         if (!this.state.LoopedMapPerDepth[depth].TryGetValue(loop, out var maps))
                         {
@@ -102,11 +94,21 @@ namespace WizMind.Scripts
                         }
                         maps[this.ws.LuigiAiData.MapType] =
                             maps.GetValueOrDefault(this.ws.LuigiAiData.MapType) + 1;
+
+                        if (this.ws.LuigiAiData.MapType != this.ws.Definitions.MainMaps[depth].type)
+                        {
+                            // Looped into a branch, exit now
+                            this.state.BranchLoopsPerDepth[depth][loop] =
+                                this.state.BranchLoopsPerDepth[depth].GetValueOrDefault(loop) + 1;
+                            break;
+                        }
                     }
                     else
                     {
                         break;
                     }
+
+                    loop += 1;
                 }
             }
 
@@ -261,7 +263,9 @@ namespace WizMind.Scripts
                     return;
                 }
 
-                for (var i = 1; i < NumDepths; i++)
+                this.Initialized = true;
+
+                for (var i = 1; i <= NumDepths; i++)
                 {
                     this.BranchLoopsPerDepth[i] = [];
                     this.LoopAttemptsPerDepth[i] = [];
