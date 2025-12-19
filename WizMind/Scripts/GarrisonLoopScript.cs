@@ -8,6 +8,8 @@ namespace WizMind.Scripts
 {
     public class GarrisonLoopScript : IScript
     {
+        private const bool PrintStats = false;
+
         private State state = null!;
         private ScriptWorkspace ws = null!;
 
@@ -27,6 +29,16 @@ namespace WizMind.Scripts
 
         public bool ProcessRun()
         {
+            if (PrintStats)
+            {
+                for (var i = 8; i >= 2; i--)
+                {
+                    this.PrintDepthStats(i);
+                }
+
+                this.PrintAllDepthStats();
+            }
+
             // Add maximum number of slots ahead of time so we don't
             // have to pick them on evolutions
             this.ws.WizardCommands.AddSlots(SlotType.Utility, 19);
@@ -206,6 +218,126 @@ namespace WizMind.Scripts
                 return surroundingTiles.Where(tile => tile.Prop?.Name == "Garrison Access").Count()
                     == 3;
             }
+        }
+
+        private void PrintAllDepthStats()
+        {
+            Console.WriteLine();
+            Console.WriteLine(
+                "------------------------------------------------------------------------"
+            );
+            Console.WriteLine("All depth stats");
+            Console.WriteLine();
+
+            var maxLoops = this.state.LoopAttemptsPerDepth.Values.Max(loops =>
+                loops.Count > 0 ? loops.Keys.Max() : 0
+            );
+
+            for (var loop = 0; loop < maxLoops; loop++)
+            {
+                var loopAttempts = 0;
+                var allLoops = 0;
+                var mainFloorLoops = 0;
+                var branchLoops = 0;
+
+                for (var depth = 8; depth >= 2; depth--)
+                {
+                    var depthLoopAttempts = this
+                        .state.LoopAttemptsPerDepth[depth]
+                        .GetValueOrDefault(loop);
+                    loopAttempts += depthLoopAttempts;
+                    var depthLoops = this.state.LoopsPerDepth[depth].GetValueOrDefault(loop);
+                    allLoops += depthLoops;
+                    var depthMainFloorLoops =
+                        this.state.LoopedMapPerDepth[depth]
+                            .GetValueOrDefault(loop)
+                            ?.GetValueOrDefault(this.ws.Definitions.MainMaps[depth].type)
+                        ?? 0;
+                    mainFloorLoops += depthMainFloorLoops;
+                    branchLoops += depthLoops - depthMainFloorLoops;
+                }
+
+                var allLoopPercent = (float)allLoops / loopAttempts;
+                var mainLoopPercent = (float)mainFloorLoops / loopAttempts;
+                var branchLoopPercent = allLoopPercent - mainLoopPercent;
+
+                Console.WriteLine($"Loop {loop}:");
+                Console.WriteLine(
+                    $"Looped {allLoops} of {loopAttempts} attempts with {mainFloorLoops} main floor and {branchLoops} branch loops."
+                );
+                Console.WriteLine($"Average loop chance = {allLoopPercent * 100:F2}%");
+                Console.WriteLine(
+                    $"Main loop = {mainLoopPercent * 100:F2}% of exits and {mainLoopPercent / allLoopPercent * 100:F2}% of loops."
+                );
+                Console.WriteLine(
+                    $"Branch loop = {branchLoopPercent * 100:F2}% of exits and {branchLoopPercent / allLoopPercent * 100:F2}% of loops."
+                );
+                Console.WriteLine();
+            }
+        }
+
+        private void PrintDepthStats(int depth)
+        {
+            Console.WriteLine();
+            Console.WriteLine(
+                "------------------------------------------------------------------------"
+            );
+            Console.WriteLine($"Stats for depth -{depth}:");
+            Console.WriteLine();
+
+            for (var loop = 0; loop < this.state.LoopAttemptsPerDepth[depth].Count; loop++)
+            {
+                var loopAttempts = this.state.LoopAttemptsPerDepth[depth][loop];
+                var allLoops = this.state.LoopsPerDepth[depth].GetValueOrDefault(loop);
+                var mainFloorLoops =
+                    this.state.LoopedMapPerDepth[depth]
+                        .GetValueOrDefault(loop)
+                        ?.GetValueOrDefault(this.ws.Definitions.MainMaps[depth].type)
+                    ?? 0;
+                var branchLoops = allLoops - mainFloorLoops;
+                var allLoopPercent = (float)allLoops / loopAttempts;
+                var mainLoopPercent = (float)mainFloorLoops / loopAttempts;
+                var branchLoopPercent = allLoopPercent - mainLoopPercent;
+
+                Console.WriteLine($"Loop {loop}:");
+                Console.WriteLine(
+                    $"Looped {allLoops} of {loopAttempts} attempts with {mainFloorLoops} main floor and {branchLoops} branch loops."
+                );
+                Console.WriteLine($"Average loop chance = {allLoopPercent * 100:F2}%");
+                Console.WriteLine(
+                    $"Main loop = {mainLoopPercent * 100:F2}% of exits and {mainLoopPercent / allLoopPercent * 100:F2}% of loops."
+                );
+                Console.WriteLine(
+                    $"Branch loop = {branchLoopPercent * 100:F2}% of exits and {branchLoopPercent / allLoopPercent * 100:F2}% of loops."
+                );
+                Console.WriteLine();
+            }
+
+            var totalLoopAttempts = this.state.LoopAttemptsPerDepth[depth].Values.Sum();
+            var totalAllLoops = this.state.LoopsPerDepth[depth].Values.Sum();
+            var totalMainFloorLoops = this
+                .state.LoopedMapPerDepth[depth]
+                .Values.Select(x => x.GetValueOrDefault(this.ws.Definitions.MainMaps[depth].type))
+                .Sum();
+            var totalBranchLoops = totalAllLoops - totalMainFloorLoops;
+            var totalAllLoopPercent =
+                (float)this.state.LoopsPerDepth[depth].Values.Sum() / totalLoopAttempts;
+            var totalMainLoopPercent = (float)totalMainFloorLoops / totalLoopAttempts;
+            var totalBranchLoopPercent = totalAllLoopPercent - totalMainLoopPercent;
+
+            Console.WriteLine();
+            Console.WriteLine($"All loops at depth -{depth}");
+            Console.WriteLine(
+                $"Looped {totalAllLoops} of {totalLoopAttempts} attempts, with {totalMainFloorLoops} main floor and {totalBranchLoops} branch loops."
+            );
+            Console.WriteLine($"Average loop chance = {totalAllLoopPercent * 100:F2}%");
+            Console.WriteLine(
+                $"Main loop = {totalMainLoopPercent * 100:F2}% of exits and {totalMainLoopPercent / totalAllLoopPercent * 100:F2}% of loops."
+            );
+            Console.WriteLine(
+                $"Branch loop = {totalBranchLoopPercent * 100:F2}% of exits and {totalBranchLoopPercent / totalAllLoopPercent * 100:F2}% of loops."
+            );
+            Console.WriteLine();
         }
 
         private void TakeExit()
