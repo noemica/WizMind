@@ -67,6 +67,7 @@ namespace WizMind.Scripts
 
             var allInstallers = 0;
             var looped = false;
+            var prevDepth = 8;
 
             int processedInstallers;
 
@@ -74,6 +75,11 @@ namespace WizMind.Scripts
             {
                 var depth = this.ws.LuigiAiData.Depth;
                 var mapType = this.ws.LuigiAiData.MapType;
+
+                if (depth != prevDepth)
+                {
+                    looped = false;
+                }
 
                 switch (mapType)
                 {
@@ -96,7 +102,7 @@ namespace WizMind.Scripts
                                 this.state.AttemptedLoopsByInstalled[allInstallers] =
                                     this.state.AttemptedLoopsByInstalled.GetValueOrDefault(
                                         allInstallers
-                                    );
+                                    ) + 1;
                             }
 
                             var branchLoopIndex = looped ? 1 : 0;
@@ -120,7 +126,7 @@ namespace WizMind.Scripts
                                     allInstallers
                                 ] = this
                                     .state.AttemptedBranchByInstalled[branchLoopIndex]
-                                    .GetValueOrDefault(allInstallers);
+                                    .GetValueOrDefault(allInstallers) + 1;
                             }
 
                             // If we entered a Garrison then process it now
@@ -135,7 +141,7 @@ namespace WizMind.Scripts
                                 this.state.SuccessfulLoopsByInstalled[allInstallers] =
                                     this.state.SuccessfulLoopsByInstalled.GetValueOrDefault(
                                         allInstallers
-                                    );
+                                    ) + 1;
                                 looped = true;
                             }
 
@@ -150,7 +156,7 @@ namespace WizMind.Scripts
                                     allInstallers
                                 ] = this
                                     .state.AttemptedBranchByInstalled[branchLoopIndex]
-                                    .GetValueOrDefault(allInstallers);
+                                    .GetValueOrDefault(allInstallers) + 1;
                             }
 
                             allInstallers += processedInstallers;
@@ -190,6 +196,8 @@ namespace WizMind.Scripts
                         this.ws.WizardCommands.GotoMainMap(depth - 1);
                         break;
                 }
+
+                prevDepth = depth;
             }
 
             // Now on access, process one final Garrison since we will be locked out afterwards

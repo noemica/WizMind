@@ -38,7 +38,7 @@
 
         public static readonly int PostHackPopupCloseSleep = 1000;
 
-        public static readonly int PostHackPopupLoadSleep = 1000;
+        public static readonly int PostHackPopupLoadSleep = 1500;
 
         public static readonly int PostMapLoadSleep = 2 * 1000;
 
