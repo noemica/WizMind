@@ -156,17 +156,19 @@ namespace WizMind.Scripts
                             allInstallers += processedInstallers;
                             depthInstallers[depth] += processedInstallers;
                         }
-                        else
+                        else if (
+                            (mapType == MapType.MAP_TES || mapType == MapType.MAP_QUA)
+                            && depth == section7Depth
+                        )
                         {
                             // If we're in a Research branch without a Garrison,
                             // manually jump to Section 7 to check for another one
-                            if (
-                                (mapType == MapType.MAP_TES || mapType == MapType.MAP_QUA)
-                                && depth == section7Depth
-                            )
-                            {
-                                this.ws.WizardCommands.GotoMap(MapType.MAP_SEC);
-                            }
+                            this.ws.WizardCommands.GotoMap(MapType.MAP_SEC);
+                        }
+                        else
+                        {
+                            // Otherwise no Garrison available, so just bail
+                            this.ws.WizardCommands.GotoMainMap(depth - 1);
                         }
                         break;
 
@@ -187,14 +189,6 @@ namespace WizMind.Scripts
                         // Map has no garrison, just teleport to the next main floor
                         this.ws.WizardCommands.GotoMainMap(depth - 1);
                         break;
-                }
-
-                prevDepth = depth;
-
-                if (mapType != MapType.MAP_GAR)
-                {
-                    // Only save non-Garrison map type
-                    prevMapType = mapType;
                 }
             }
 
@@ -269,6 +263,8 @@ namespace WizMind.Scripts
                 var (installerTile, adjacentTile) in this.GetInstallerLocations(installerGroups)
             )
             {
+                currentCoordinates = installerTile.Coordinates;
+
                 // Teleport to the adjacent tile to the installer tile first
                 this.ws.WizardCommands.TeleportToTile(adjacentTile);
 
@@ -293,8 +289,6 @@ namespace WizMind.Scripts
                 // Move into the installer tile to use it
                 this.ws.Movement.Move(direction);
                 rifInstallers += 1;
-
-                currentCoordinates = installerTile.Coordinates;
             }
 
             // Find the closest exit and take it
