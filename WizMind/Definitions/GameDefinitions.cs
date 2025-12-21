@@ -58,6 +58,14 @@ namespace WizMind.Definitions
 
         public Dictionary<string, PropDefinition> PropNameToDefinition { get; } = [];
 
+        public bool IsMainMapType(MapType type)
+        {
+            return type == MapType.MAP_MAT
+                || type == MapType.MAP_FAC
+                || type == MapType.MAP_RES
+                || type == MapType.MAP_ACC;
+        }
+
         private void ParseCellIds(string cellIdPath)
         {
             var lines = File.ReadAllLines(cellIdPath);

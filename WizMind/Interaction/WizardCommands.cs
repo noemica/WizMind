@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using WizMind.Analysis;
 using WizMind.Definitions;
 using WizMind.Instances;
 using WizMind.LuigiAi;
@@ -10,7 +11,11 @@ namespace WizMind.Interaction
         CogmindProcess cogmindProcess,
         GameDefinitions definitions,
         Input input,
-        LuigiAiData luigiAiData
+        LuigiAiData luigiAiData,
+        MachineHacking machineHacking,
+        Movement movement,
+        PropAnalysis propAnalysis,
+        TileAnalysis tileAnalysis
     )
     {
         private enum XDirection
@@ -32,6 +37,10 @@ namespace WizMind.Interaction
         private readonly Input input = input;
         private bool inWizardMode;
         private readonly LuigiAiData luigiAiData = luigiAiData;
+        private readonly MachineHacking machineHacking = machineHacking;
+        private readonly Movement movement = movement;
+        private readonly PropAnalysis propAnalysis = propAnalysis;
+        private readonly TileAnalysis tileAnalysis = tileAnalysis;
 
         /// <summary>
         /// Adds the specified number of slots to the specified slot type.
@@ -146,6 +155,18 @@ namespace WizMind.Interaction
 
             // Ideally invalidate data here but items aren't updated after wizard mode commands
             this.EnterWizardModeCommand($"g {itemName}");
+        }
+
+        /// <summary>
+        /// Jumps to the main map on the specified depth.
+        /// </summary>
+        /// <param name="depth">Depth of the map to go to.</param>
+        /// <param name="force">Whether to force teleport to the map if Cogmind is already on it.</param>
+        public bool GotoMainMap(int depth, bool force = false)
+        {
+            var map = this.definitions.MainMaps[depth];
+
+            return this.GotoMap(map, depth, force);
         }
 
         /// <summary>
@@ -342,6 +363,108 @@ namespace WizMind.Interaction
             this.input.SendMousepress(MouseButton.RightButton, keyModifier: KeyModifier.Alt);
 
             this.luigiAiData.InvalidateData(DataInvalidationType.NonadvancingAction);
+        }
+
+        /// <summary>
+        /// Searches and teleports to the nearest Garrison access, then hacks
+        /// it open and enters it.
+        /// </summary>
+        /// <remarks>
+        /// Assumes that Cogmind has 100% hack chance for opening Garriisons,
+        /// either through direct hacking bonus or RIF.
+        /// </remarks>
+        /// <returns><c>true</c> if the garrison was successfully entered.</returns>
+        public bool TryFindAndEnterGarrison()
+        {
+            this.RevealMap();
+            var cogmindPosition = this.luigiAiData.CogmindCoordinates;
+
+            // Find the closest interactive Garrison tile
+            var garrisonTile = this
+                .propAnalysis.FindTilesByPropType(PropType.GarrisonAccess, true)
+                .OrderBy(tile => tile.Coordinates.CalculateMaxDistance(cogmindPosition))
+                .FirstOrDefault();
+
+            if (garrisonTile == null)
+            {
+                // Couldn't find a Garrison, return unsccessful
+                return false;
+            }
+
+            // Teleport to the open side of the Garrison, then open it.
+            // The tile the stairs will be on are closed off on 3/4 directions,
+            // while all other cardinally adjacent tiles are part of the
+            // Garrison access itself
+            var tiles = this.luigiAiData.Tiles;
+            MapTile targetTile;
+            MovementDirection direction;
+
+            if (
+                garrisonTile.X > 1
+                && IsGarrisonEntranceTile(tiles[garrisonTile.X - 1, garrisonTile.Y])
+            )
+            {
+                targetTile = tiles[garrisonTile.X - 1, garrisonTile.Y];
+                direction = MovementDirection.Right;
+            }
+            else if (
+                garrisonTile.X < this.luigiAiData.MapWidth - 2
+                && IsGarrisonEntranceTile(tiles[garrisonTile.X + 1, garrisonTile.Y])
+            )
+            {
+                targetTile = tiles[garrisonTile.X + 1, garrisonTile.Y];
+                direction = MovementDirection.Left;
+            }
+            else if (
+                garrisonTile.Y > 1
+                && IsGarrisonEntranceTile(tiles[garrisonTile.X, garrisonTile.Y - 1])
+            )
+            {
+                targetTile = tiles[garrisonTile.X, garrisonTile.Y - 1];
+                direction = MovementDirection.Down;
+            }
+            else if (
+                garrisonTile.Y < this.luigiAiData.MapHeight - 2
+                && IsGarrisonEntranceTile(tiles[garrisonTile.X, garrisonTile.Y + 1])
+            )
+            {
+                targetTile = tiles[garrisonTile.X, garrisonTile.Y + 1];
+                direction = MovementDirection.Up;
+            }
+            else
+            {
+                throw new Exception("Couldn't find open Garrison tile");
+            }
+
+            this.TeleportToTile(targetTile);
+            this.machineHacking.OpenHackingPopup(direction);
+            this.machineHacking.PerformHack(Keys.A); // Open hack is always first
+            this.machineHacking.CloseHackingPopup();
+
+            // We are on the stairs so enter them now
+            this.movement.EnterStairs();
+
+            return true;
+
+            bool IsGarrisonEntranceTile(MapTile tile)
+            {
+                if (tile.Prop != null)
+                {
+                    return false;
+                }
+
+                var tiles = this.luigiAiData.Tiles;
+                var surroundingTiles = new List<MapTile>
+                {
+                    { tiles[tile.X + 1, tile.Y] },
+                    { tiles[tile.X, tile.Y - 1] },
+                    { tiles[tile.X - 1, tile.Y] },
+                    { tiles[tile.X, tile.Y + 1] },
+                };
+
+                return surroundingTiles.Where(tile => tile.Prop?.Name == "Garrison Access").Count()
+                    == 3;
+            }
         }
 
         private void MoveCursorToPosition(int x, int y)

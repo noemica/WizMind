@@ -49,16 +49,20 @@ internal class Program
             var machineHacking = new MachineHacking(input, luigiAiData);
             var movement = new Movement(input, luigiAiData);
 
+            var itemAnalysis = new ItemAnalysis(luigiAiData);
+            var propAnalysis = new PropAnalysis(luigiAiData);
+            var tileAnalysis = new TileAnalysis(luigiAiData);
+
             var wizardCommands = new WizardCommands(
                 cogmindProcess,
                 definitions,
                 input,
-                luigiAiData
+                luigiAiData,
+                machineHacking,
+                movement,
+                propAnalysis,
+                tileAnalysis
             );
-
-            var itemAnalysis = new ItemAnalysis(luigiAiData);
-            var propAnalysis = new PropAnalysis(luigiAiData);
-            var tileAnalysis = new TileAnalysis(luigiAiData);
 
             var ws = new ScriptWorkspace(
                 cogmindProcess,
@@ -84,7 +88,8 @@ internal class Program
             IScript script;
             //script = new ECACountScript();
             //script = new GarrisonContentsScript();
-            script = new GarrisonLoopScript();
+            //script = new GarrisonLoopScript();
+            script = new RifLoopsScript();
             //script = new TestingContentsScript();
             //script = new QuarantineContentsScript();
 

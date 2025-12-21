@@ -13,6 +13,7 @@ namespace WizMind.Analysis
         GarrisonTerminal,
         RecyclingUnit,
         RepairStation,
+        RifInstaller,
         Scanalyzer,
         Terminal,
     }
@@ -27,6 +28,7 @@ namespace WizMind.Analysis
             { PropType.GarrisonTerminal, (prop) => prop.Name == "Garrison Terminal" },
             { PropType.RecyclingUnit, (prop) => prop.Name == "Recycling Unit" },
             { PropType.RepairStation, (prop) => prop.Name == "Repair Station" },
+            { PropType.RifInstaller, (prop) => prop.Name == "RIF Installer" },
             { PropType.Scanalyzer, (prop) => prop.Name == "Scanalyzer" },
             { PropType.Terminal, (prop) => prop.Name == "Terminal" },
         };
@@ -69,17 +71,6 @@ namespace WizMind.Analysis
             }
 
             return propCounts;
-
-            void CheckTileForProp(bool[,] processed, MapTile tile, string propName)
-            {
-                // Recursively check if the tile has the same prop type as the
-                // given name.
-                if (tile.Prop is { } prop && prop.Name == propName)
-                {
-                    processed[tile.X, tile.Y] = true;
-                    CheckSurroundingTileForProp(processed, tile);
-                }
-            }
 
             void CheckSurroundingTileForProp(bool[,] processed, MapTile tile)
             {
@@ -128,6 +119,17 @@ namespace WizMind.Analysis
                     );
                 }
             }
+
+            void CheckTileForProp(bool[,] processed, MapTile tile, string propName)
+            {
+                // Recursively check if the tile has the same prop type as the
+                // given name.
+                if (tile.Prop is { } prop && prop.Name == propName)
+                {
+                    processed[tile.X, tile.Y] = true;
+                    CheckSurroundingTileForProp(processed, tile);
+                }
+            }
         }
 
         /// <summary>
@@ -141,9 +143,83 @@ namespace WizMind.Analysis
             return
             [
                 .. this.luigiAiData.AllTiles.Where(tile =>
-                    tile.Prop?.Name == name && onlyInteractive ? tile.Prop.InteractivePiece : true
+                    (tile.Prop?.Name) != name || !onlyInteractive || tile.Prop.InteractivePiece
                 ),
             ];
+        }
+
+        /// <summary>
+        /// Finds all tiles where the type of the tile matches the given class.
+        /// </summary>
+        /// <param name="type">The type or category of the tile.</param>
+        /// <param name="onlyInteractive">Whether to only show interactive prop.</param>
+        /// <returns>A list of found tiles.</returns>
+        public List<List<MapTile>> FindTileGroupsByPropType(PropType type)
+        {
+            var groups = new List<List<MapTile>>();
+
+            // Separate tiles into groups
+            var tilesToProcess = this.FindTilesByPropType(type);
+            while (tilesToProcess.Count > 0)
+            {
+                var tile = tilesToProcess[0];
+                tilesToProcess.RemoveAt(0);
+
+                // Skip tile if there's no prop
+                if (tile.Prop == null)
+                {
+                    continue;
+                }
+
+                // Start with the first tile
+                var group = new List<MapTile>() { tile };
+                groups.Add(group);
+
+                // Continue processing the list for new tiles each time a new
+                // item is added. This is needed to ensure that the group is
+                // fully connected and not based on tile processing order.
+                var processGroup = true;
+                while (processGroup)
+                {
+                    processGroup = false;
+
+                    for (int i = tilesToProcess.Count - 1; i >= 0; i--)
+                    {
+                        var tileToCheck = tilesToProcess[i];
+                        if (TryAddTileToGroup(group, tileToCheck))
+                        {
+                            tilesToProcess.RemoveAt(i);
+                            processGroup = true;
+                        }
+                    }
+                }
+            }
+
+            return groups;
+
+            static bool TryAddTileToGroup(List<MapTile> group, MapTile tile)
+            {
+                foreach (var groupTile in group)
+                {
+                    // If a tile is adjacent to any tile in the group and has
+                    // the same prop type then add it to the group
+                    if (
+                        (
+                            (tile.X + 1 == groupTile.X && tile.Y == groupTile.Y)
+                            || (tile.X - 1 == groupTile.X && tile.Y == groupTile.Y)
+                            || (tile.X == groupTile.X && tile.Y + 1 == groupTile.Y)
+                            || (tile.X == groupTile.X && tile.Y - 1 == groupTile.Y)
+                        )
+                        && tile.Prop?.Definition == groupTile.Prop?.Definition
+                    )
+                    {
+                        group.Add(tile);
+                        return true;
+                    }
+                }
+
+                return false;
+            }
         }
 
         /// <summary>
@@ -155,14 +231,27 @@ namespace WizMind.Analysis
         public List<MapTile> FindTilesByPropType(PropType type, bool onlyInteractive = false)
         {
             var filter = propClassFilters[type];
-            return
-            [
-                .. this.luigiAiData.AllTiles.Where(tile =>
+            var tiles = this
+                .luigiAiData.AllTiles.Where(tile =>
                     tile.Prop != null
                     && (!onlyInteractive || tile.Prop.InteractivePiece)
                     && filter(tile.Prop)
-                ),
-            ];
+                )
+                .ToList();
+
+            return tiles;
+        }
+
+        /// <summary>
+        /// Determines whether the tile has the given prop type.
+        /// </summary>
+        /// <param name="tile">The tile to check.</param>
+        /// <param name="type">The prop type to check.</param>
+        /// <returns><c>true</c> if the tile has a prop of the given type, otherwise <c>false</c>.</returns>
+        public bool IsPropType(MapTile tile, PropType type)
+        {
+            var filter = propClassFilters[type];
+            return tile.Prop != null && filter(tile.Prop);
         }
     }
 }

@@ -6,7 +6,7 @@ using WizMind.Utilities;
 
 namespace WizMind.Scripts
 {
-    public class ECACountScript : IScript
+    public class EcaCountScript : IScript
     {
         private State state = null!;
         private ScriptWorkspace ws = null!;
@@ -75,7 +75,7 @@ namespace WizMind.Scripts
                     var mapVisits = this.state.MapVisitsPerDepth[depth];
                     mapVisits[map.name] = mapVisits.GetValueOrDefault(map.name) + 1;
 
-                    if (this.TryFindAndEnterGarrison())
+                    if (this.ws.WizardCommands.TryFindAndEnterGarrison())
                     {
                         // If we entered a Garrison successfully, process the
                         // contents for ECA bonus
@@ -175,99 +175,6 @@ namespace WizMind.Scripts
             this.state.EcaScorePerGarrisonByDepth[depth].Add(bonus);
 
             return bonus;
-        }
-
-        private bool TryFindAndEnterGarrison()
-        {
-            this.ws.WizardCommands.RevealMap();
-            var cogmindPosition = this.ws.LuigiAiData.CogmindCoordinates;
-
-            // Find the closest interactive Garrison tile
-            var garrisonTile = this
-                .ws.PropAnalysis.FindTilesByPropType(PropType.GarrisonAccess, true)
-                .OrderBy(tile => tile.Coordinates.CalculateMaxDistance(cogmindPosition))
-                .FirstOrDefault();
-
-            if (garrisonTile == null)
-            {
-                // Couldn't find a Garrison, return unsccessful
-                return false;
-            }
-
-            // Teleport to the open side of the Garrison, then open it.
-            // The tile the stairs will be on are closed off on 3/4 directions,
-            // while all other cardinally adjacent tiles are part of the
-            // Garrison access itself
-            var tiles = this.ws.LuigiAiData.Tiles;
-            MapTile targetTile;
-            MovementDirection direction;
-
-            if (
-                garrisonTile.X > 1
-                && IsGarrisonEntranceTile(tiles[garrisonTile.X - 1, garrisonTile.Y])
-            )
-            {
-                targetTile = tiles[garrisonTile.X - 1, garrisonTile.Y];
-                direction = MovementDirection.Right;
-            }
-            else if (
-                garrisonTile.X < this.ws.LuigiAiData.MapWidth - 2
-                && IsGarrisonEntranceTile(tiles[garrisonTile.X + 1, garrisonTile.Y])
-            )
-            {
-                targetTile = tiles[garrisonTile.X + 1, garrisonTile.Y];
-                direction = MovementDirection.Left;
-            }
-            else if (
-                garrisonTile.Y > 1
-                && IsGarrisonEntranceTile(tiles[garrisonTile.X, garrisonTile.Y - 1])
-            )
-            {
-                targetTile = tiles[garrisonTile.X, garrisonTile.Y - 1];
-                direction = MovementDirection.Down;
-            }
-            else if (
-                garrisonTile.Y < this.ws.LuigiAiData.MapHeight - 2
-                && IsGarrisonEntranceTile(tiles[garrisonTile.X, garrisonTile.Y + 1])
-            )
-            {
-                targetTile = tiles[garrisonTile.X, garrisonTile.Y + 1];
-                direction = MovementDirection.Up;
-            }
-            else
-            {
-                throw new Exception("Couldn't find open Garrison tile");
-            }
-
-            this.ws.WizardCommands.TeleportToTile(targetTile);
-            this.ws.MachineHacking.OpenHackingPopup(direction);
-            this.ws.MachineHacking.PerformHack(Keys.A); // Open hack is always first
-            this.ws.MachineHacking.CloseHackingPopup();
-
-            // We are on the stairs so enter them now
-            this.ws.Movement.EnterStairs();
-
-            return true;
-
-            bool IsGarrisonEntranceTile(MapTile tile)
-            {
-                if (tile.Prop != null)
-                {
-                    return false;
-                }
-
-                var tiles = this.ws.LuigiAiData.Tiles;
-                var surroundingTiles = new List<MapTile>
-                {
-                    { tiles[tile.X + 1, tile.Y] },
-                    { tiles[tile.X, tile.Y - 1] },
-                    { tiles[tile.X - 1, tile.Y] },
-                    { tiles[tile.X, tile.Y + 1] },
-                };
-
-                return surroundingTiles.Where(tile => tile.Prop?.Name == "Garrison Access").Count()
-                    == 3;
-            }
         }
 
         private void TakeLoopOrNormalExit()
