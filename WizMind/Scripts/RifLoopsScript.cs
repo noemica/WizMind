@@ -65,9 +65,6 @@ namespace WizMind.Scripts
                 { 1, 0 },
             };
 
-            var prevDepth = 8;
-            var prevMapType = MapType.MAP_MAT;
-
             var allInstallers = 0;
             var looped = false;
 
@@ -139,6 +136,7 @@ namespace WizMind.Scripts
                                     this.state.SuccessfulLoopsByInstalled.GetValueOrDefault(
                                         allInstallers
                                     );
+                                looped = true;
                             }
 
                             if (
