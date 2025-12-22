@@ -340,7 +340,7 @@ namespace WizMind.Interaction
         /// <param name="coordinates">The coordinates of the tile to teleport to.</param>
         public void TeleportToTile(MapPoint point)
         {
-            this.TeleportToTile(point.x, point.y);
+            this.TeleportToTile(point.X, point.Y);
         }
 
         /// <summary>

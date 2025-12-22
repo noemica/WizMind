@@ -2,8 +2,8 @@
 {
     public readonly struct MapPoint(int x, int y)
     {
-        public readonly int x = x;
-        public readonly int y = y;
+        public readonly int X = x;
+        public readonly int Y = y;
 
         /// <summary>
         /// Calculates the greatest distance between the 2 points, either the
@@ -13,7 +13,7 @@
         /// <returns>The higher difference.</returns>
         public int CalculateMaxDistance(MapPoint other)
         {
-            return Math.Max(Math.Abs(this.x - other.x), Math.Abs(this.y - other.y));
+            return Math.Max(Math.Abs(this.X - other.X), Math.Abs(this.Y - other.Y));
         }
 
         /// <summary>
@@ -23,8 +23,8 @@
         /// <param name="y">The y value.</param>
         public void Deconstruct(out int x, out int y)
         {
-            x = this.x;
-            y = this.y;
+            x = this.X;
+            y = this.Y;
         }
     }
 }

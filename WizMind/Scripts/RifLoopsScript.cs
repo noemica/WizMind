@@ -217,7 +217,7 @@ namespace WizMind.Scripts
             return true;
         }
 
-        private IEnumerable<(MapTile installerTile, MapTile adjacentTile)> GetInstallerLocations(
+        private IEnumerable<(MapPoint installerTile, MapPoint adjacentTile)> GetInstallerLocations(
             List<List<MapTile>> installerGroups
         )
         {
@@ -229,9 +229,9 @@ namespace WizMind.Scripts
                 foreach (var tile in group)
                 {
                     foreach (
-                        var surroundingTile in this.ws.TileAnalysis.GetSurroundingCardinalTiles(
-                            tile
-                        )
+                        var surroundingTile in this
+                            .ws.TileAnalysis.GetSurroundingCardinalTiles(tile)
+                            .ToList()
                     )
                     {
                         surroundingTiles.Add(surroundingTile);
@@ -251,7 +251,7 @@ namespace WizMind.Scripts
                     .ws.TileAnalysis.GetSurroundingCardinalTiles(installLocation)
                     .First(tile => tile.Prop == null);
 
-                yield return (installLocation, adjacentTile);
+                yield return (installLocation.Coordinates, adjacentTile.Coordinates);
             }
         }
 
@@ -269,9 +269,10 @@ namespace WizMind.Scripts
 
             foreach (
                 var (installerTile, adjacentTile) in this.GetInstallerLocations(installerGroups)
+                    .ToList()
             )
             {
-                currentCoordinates = installerTile.Coordinates;
+                currentCoordinates = installerTile;
 
                 // Teleport to the adjacent tile to the installer tile first
                 this.ws.WizardCommands.TeleportToTile(adjacentTile);
