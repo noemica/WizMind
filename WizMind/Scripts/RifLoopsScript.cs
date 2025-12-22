@@ -124,9 +124,9 @@ namespace WizMind.Scripts
                             {
                                 this.state.AttemptedBranchByInstalled[branchLoopIndex][
                                     allInstallers
-                                ] = this
-                                    .state.AttemptedBranchByInstalled[branchLoopIndex]
-                                    .GetValueOrDefault(allInstallers) + 1;
+                                ] =
+                                    this.state.AttemptedBranchByInstalled[branchLoopIndex]
+                                        .GetValueOrDefault(allInstallers) + 1;
                             }
 
                             // If we entered a Garrison then process it now
@@ -152,11 +152,11 @@ namespace WizMind.Scripts
                             )
                             {
                                 // Successful branch
-                                this.state.AttemptedBranchByInstalled[branchLoopIndex][
+                                this.state.EnteredBranchByInstalled[branchLoopIndex][
                                     allInstallers
-                                ] = this
-                                    .state.AttemptedBranchByInstalled[branchLoopIndex]
-                                    .GetValueOrDefault(allInstallers) + 1;
+                                ] =
+                                    this.state.EnteredBranchByInstalled[branchLoopIndex]
+                                        .GetValueOrDefault(allInstallers) + 1;
                             }
 
                             allInstallers += processedInstallers;
